@@ -19,12 +19,12 @@ shown here. Scratch scripts were not committed.
 | Item | Value |
 |---|---|
 | Publisher | Secretaria da Segurança Pública do Estado de São Paulo (SSP-SP), "SPDados" open crime data |
-| URL | `https://www.ssp.sp.gov.br/estatistica/consultas`. The repo cites it in `paper/companion/companion.tex` (R12). **Unverified** that this page serves these exact files |
+| URL | `https://www.ssp.sp.gov.br/estatistica/consultas`. The IC-Crime paper repository cites it in `paper/companion/companion.tex` (R12). **Unverified** that this page serves these exact files |
 | Download date | **Unknown.** The file first appears in git in commit `6891c8b` (2026-08-16, "feat: data with lfs") and has not changed since. That date is only an upper bound |
 | Licence | Not stated in the file or the repo. **To check** |
 | Format | `;`-separated, UTF-8, CRLF line endings, 1 header row, 25 columns |
 | Size / rows | 48,990,035 bytes. 139,301 data rows |
-| SHA-256 | `19d7cf1f3f0e4b987e7feed679a601767ac7699ceeb37ae6854c24572ee64cda` (same as `outputs/board/data_audit.json → source_sha256`) |
+| SHA-256 | `19d7cf1f3f0e4b987e7feed679a601767ac7699ceeb37ae6854c24572ee64cda` (the removed deck run's `outputs/board/data_audit.json → source_sha256` reported the same hash) |
 | Tracked by | git LFS |
 
 ### How this file was built: a known gap (to be scripted in #13, Acquire stage)
@@ -65,9 +65,11 @@ registered bulletin**. It is not one incident and not one bulletin.
   one BO records both *Furto – Outros* and *Lesão corporal – Dolosa*). In 801
   keys the repeated rows have different `RUBRICA` values.
 - `NUM_BO + ANO_BO` alone repeats 7,516 times. That key is not unique across
-  police stations (`outputs/board/data_audit.json` reports the same 7,516).
+  police stations (the removed deck run's `outputs/board/data_audit.json` reported the same 7,516).
 - 1 row is an exact duplicate of another row.
-- No deduplication is applied anywhere in the pipeline.
+- In this legacy file nothing is deduplicated. The current pipeline collapses the
+  scripted equivalent to one row per bulletin (`scripts/02_clean/clean_bulletins.py`;
+  [ssp_bulletins_clean.md](ssp_bulletins_clean.md)).
 
 ## Columns
 
@@ -143,12 +145,18 @@ of the data is prohibited") is a third code.
 
 ## Code that reads it
 
+Since #13 the first three readers below take the **scripted**
+`outputs/data/crimes_campinas.csv` (same 25 columns; `crime.core.config.CRIMES_CSV`),
+not this legacy file; the core analysis (`scripts/04_analyse/run_core.py`) reads
+only `outputs/data/bulletins_clean.parquet`. The last row is the only reader of
+this file.
+
 | Code | Columns used |
 |---|---|
 | `etl/sources.py:extract_crimes` | all columns. The redacted `LATITUDE` becomes NaN, then lat/long are made numeric. `NUM_BO`, `ANO_BO`, `MES_/ANO_ESTATISTICA` are typed; `DATA_REGISTRO`, `DATA_OCORRENCIA_BO` are parsed |
 | `scripts/02_clean/load_database.py:main` → `fato_crimes` | rows with non-null lat/long only. Uses `NUM_BO, ANO_BO, DATA_OCORRENCIA_BO, HORA_OCORRENCIA_BO, DESC_PERIODO, DESCR_SUBTIPOLOCAL, BAIRRO, NATUREZA_APURADA, LATITUDE, LONGITUDE`, plus `cd_setor`/`grid_id` (point-in-polygon) and `crime_slug`/`crime_group` (`etl/taxonomy.py`) |
 | `crime/data/cleaning.py:RawPaths.crimes`, `filter_events` | `data_ocorrencia` (renamed), `crime_slug` |
-| `paper/presentation_puc/src/data_audit.py` | N funnel, geocoding completeness, `source_sha256` |
+| `scripts/01_acquire/acquire_ssp.py:compare_with_legacy` | all 25 columns: row-for-row comparison with the scripted `outputs/data/crimes_campinas.csv` (`outputs/data/acquire_report.json → vs_legacy`). This is the file's only remaining use |
 
 The ETL never loads `DATA_REGISTRO`, `RUBRICA`, `DESCR_CONDUTA`, `LOGRADOURO`,
 the `NOME_*` station columns or `*_ESTATISTICA` into the database.

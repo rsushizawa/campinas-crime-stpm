@@ -1,9 +1,17 @@
 # Datasheet: property-crime tract × month cube, 2022–2025 (primary EHSA input)
 
-> **Update (#13, 2026-10-22).** The cube is now built from the scripted,
-> deduplicated pipeline (one row per bulletin; see
-> [ssp_bulletins_clean.md](ssp_bulletins_clean.md)). Current values, from
-> `outputs/board/tract_counts.parquet` after `make clean analyse`:
+> **Update (2026-10-30).** The cube is built in memory by the core pipeline,
+> `scripts/04_analyse/run_core.py` (step `change`; `make analyse`), from the
+> scripted, deduplicated bulletins (one row per bulletin; see
+> [ssp_bulletins_clean.md](ssp_bulletins_clean.md)):
+> `crime.data.units.unit_dataset("tract", crime_group="property")` then
+> `crime.esri.cube.space_time_cube(ds, freq="QE" | "ME")`. It is no longer
+> snapshotted to disk; the per-tract counts are in
+> `outputs/core/static_by_unit/tract.parquet` (`crime_count`) and the totals in
+> `outputs/core/descriptive.csv`. The earlier producer
+> (`run_board_analysis.py`, writing `outputs/board/`) has been removed from
+> this repository; references to `outputs/board/` below describe that removed
+> run. Values after #13 (computed by the removed run, 2026-10-22):
 >
 > | Quantity | Before #13 | Now |
 > |---|---|---|
@@ -19,9 +27,11 @@
 > longer applies. The rest of this page describes the pre-#13 cube.
 
 This is the assembled dataset that the primary Emerging Hot Spot Analysis
-(EHSA) runs on: `scripts/04_analyse/run_board_analysis.py`, specification `PRIMARY`. The
-run snapshots it to `outputs/board/tract_counts.parquet`. The tract attributes
-are snapshotted alongside it in `outputs/board/tracts.parquet`.
+(EHSA) runs on. Before 2026-10-30 it was produced by the (now removed)
+`scripts/04_analyse/run_board_analysis.py`, specification `PRIMARY`, which
+snapshotted it to `outputs/board/tract_counts.parquet` with the tract
+attributes in `outputs/board/tracts.parquet`. The current producer is
+`scripts/04_analyse/run_core.py` (see the update note above).
 
 All numbers on this page were **recomputed on 2026-10-22** from the raw CSV,
 independently of the database. The pipeline logic was replicated: the
@@ -32,13 +42,26 @@ mismatching cells)**.
 
 ## How it is built
 
+Current (no database):
+
+```python
+from crime.data.units import unit_dataset
+from crime.esri.cube import space_time_cube
+ds   = unit_dataset("tract", crime_group="property", years=(2022, 2025))
+cube = space_time_cube(ds, freq="QE")     # primary time unit; "ME" for months
+```
+
+`unit_dataset` assigns each geocoded bulletin to a tract with
+`crime.data.units.assign_points` (point-in-polygon, `intersects`, first unit in
+row order). Before 2026-10-30 (PostGIS):
+
 ```python
 ds   = crime.load_sectors(years=(2022, 2025), crime_group="property", events=True, overlay=True)
 cube = crime.space_time_cube(ds)          # freq="ME"
-cube.wide.to_parquet("outputs/board/tract_counts.parquet")
+cube.wide.to_parquet("outputs/board/tract_counts.parquet")   # removed run
 ```
 
-The pipeline runs in five steps:
+The pre-#13 pipeline ran in five steps:
 
 1. **`crimes_campinas.csv` → `fato_crimes`** (`scripts/02_clean/load_database.py`). Only rows with
    numeric lat/long are loaded. Each point is assigned to a 2022 tract by
@@ -150,6 +173,6 @@ Share of property events in the window that reach the cube: 90,486 / 108,984 =
 
 | Item | Value |
 |---|---|
-| Producer | `scripts/04_analyse/run_board_analysis.py:main` (run without `--from-snapshots` / `--recompute-from-cube`; with either flag it reloads this snapshot instead of rebuilding it) |
-| Inputs | PostGIS `fato_crimes` (from `crimes_campinas.csv`, SHA-256 `19d7cf1f3f0e4b987e7feed679a601767ac7699ceeb37ae6854c24572ee64cda`) and `vw_sector_features` (2022 tracts, see [ibge_census_tracts_2022.md](ibge_census_tracts_2022.md)) |
-| Snapshot | `outputs/board/tract_counts.parquet`. Git-ignored (`/results/` in `.gitignore`); run provenance in `outputs/board/analysis.provenance.json` |
+| Producer | `scripts/04_analyse/run_core.py` (step `change`, in memory). Before 2026-10-30: `scripts/04_analyse/run_board_analysis.py:main` (removed) |
+| Inputs | `outputs/data/bulletins_clean.parquet` (stage 02) and the 2022 tract polygons `inputs/data/geobr/census_tract_3509502_2022.parquet` (see [ibge_census_tracts_2022.md](ibge_census_tracts_2022.md)). Before 2026-10-30: PostGIS `fato_crimes` (from `crimes_campinas.csv`, SHA-256 `19d7cf1f3f0e4b987e7feed679a601767ac7699ceeb37ae6854c24572ee64cda`) and `vw_sector_features` |
+| Snapshot | None (built in memory). Per-unit results and run provenance in `outputs/core/` (`manifest.json`), git-ignored (`/outputs/*`). The removed run wrote `outputs/board/tract_counts.parquet` |

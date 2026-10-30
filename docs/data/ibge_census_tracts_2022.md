@@ -20,8 +20,8 @@ This file is the spatial unit of the primary analysis: the 2022 census tracts
 Each row is one tract polygon. The file has **2,593 rows but 2,592 distinct
 `code_tract`**: tract `350950210000134` is stored as two separate polygons
 (41,209 m² and 73,630 m²). `extract_census_tracts` dissolves these on
-`cd_setor`, which leaves 2,592 tracts, the `n_tracts` reported in
-`outputs/board/analysis_results.json`.
+`cd_setor`, which leaves 2,592 tracts (the `n_units` of the tract support in
+`outputs/core/descriptive.csv`).
 
 All geometries are `MultiPolygon`. None is null, empty or invalid. The total
 area is 794.80 km² in EPSG:31983. The IBGE *Agregados* `AREA_KM2` sums to

@@ -23,7 +23,7 @@ Hashes were computed on 2026-10-22. "Status" is the current use by
 | `inputs/data/Painel_IBGE_2022.csv` | IBGE Censo 2022, Alfabetização (values verified equal); compiler unverified | literacy `V00900`, `V00901` | used | [ibge_painel_literacy_2022.md](../docs/data/ibge_painel_literacy_2022.md) |
 | `inputs/data/qg_810_endereco_Munic3509502.json` | IBGE CNEFE 2022 | address points, `COD_ESPECIE` | used | [ibge_cnefe_2022.md](../docs/data/ibge_cnefe_2022.md) |
 | `inputs/data/map.geojson` | Campinas UTB (publisher unverified); **2010 Census attributes** | 93 UTB polygons (overlay); `rendatemei` is a count | used | [campinas_utb.md](../docs/data/campinas_utb.md) |
-| `outputs/board/tract_counts.parquet` | assembled: property crime, tract × month | primary EHSA input | generated | [property_tract_month_cube.md](../docs/data/property_tract_month_cube.md) |
+| (in memory, `scripts/04_analyse/run_core.py`) | assembled: property crime, tract × quarter / month | primary EHSA input | generated (formerly snapshotted to `outputs/board/tract_counts.parquet` by a removed script) | [property_tract_month_cube.md](../docs/data/property_tract_month_cube.md) |
 
 ## Acquire and clean (scripted, #13)
 
