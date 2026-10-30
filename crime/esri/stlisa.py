@@ -50,12 +50,15 @@ class SpaceTimeLisaResult:
 
 def space_time_lisa(
     dataset, *, freq: str = "ME", weights="queen",
-    permutations: int = 999, alpha: float = 0.05, fdr: bool = True, seed: int = 42, matrix=None,
+    permutations: int = 499, alpha: float = 0.05, fdr: bool = True, seed: int = 42, matrix=None,
 ) -> SpaceTimeLisaResult:
     """``matrix`` — a precomputed unit x period DataFrame to run per-slice LISA
     on instead of the crime-count cube (e.g. an EB-smoothed rate matrix);
-    its index must match ``dataset``'s unit ids. ``fdr=True`` applies per-slice
-    Benjamini-Hochberg correction, matching :func:`crime.esri.ehsa.gi_time_series`."""
+    its index must match ``dataset``'s unit ids. Each slice uses esda's
+    conditional-permutation pseudo p (``Moran_Local.p_sim``; ``permutations=499``
+    is the ArcGIS Pro "Local Outlier Analysis" default, ``seed`` fixes the
+    draws). ``fdr=True`` applies per-slice Benjamini-Hochberg correction,
+    matching :func:`crime.esri.ehsa.gi_time_series`."""
     from esda.moran import Moran_Local
 
     gdf = dataset.metric().reset_index(drop=True)

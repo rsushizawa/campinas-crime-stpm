@@ -1,9 +1,12 @@
 """Local spatial statistics — "where are the clusters?"
 
 Method
-    Getis-Ord Gi* hot/cold spots and Anselin's Local Moran's I (LISA), each
-    with a permutation (or analytic) p-value and optional Benjamini–Hochberg
-    FDR control (:mod:`crime.esri.inference`).
+    Getis-Ord Gi* hot/cold spots and Anselin's Local Moran's I (LISA) with
+    optional Benjamini–Hochberg FDR control (:mod:`crime.esri.inference`).
+    Inference follows the documented ArcGIS Pro defaults: Gi* uses the
+    analytic z-score (general-weights Ord & Getis 1995 variance, two-sided
+    normal p — no permutations); Local Moran's I uses conditional
+    permutation (``esda`` ``p_sim``, 499 permutations).
 Reference
     Getis, A. & Ord, J.K. (1992). The analysis of spatial association by use of
     distance statistics. Geographical Analysis 24(3).
@@ -13,9 +16,10 @@ Reference
     Geographical Analysis 27(2).
     Implementation: PySAL ``esda.getisord.G_Local`` / ``esda.moran.Moran_Local``.
 ESRI tool mirrored
-    "Hot Spot Analysis (Getis-Ord Gi*)" and "Cluster and Outlier Analysis
-    (Anselin Local Moran's I)"; ``gi_confidence_bin`` reproduces ArcGIS's
-    ``Gi_Bin`` 90/95/99 % confidence classes.
+    "Hot Spot Analysis (Getis-Ord Gi*)" (analytic z) and "Cluster and Outlier
+    Analysis (Anselin Local Moran's I)" (499 permutations by default);
+    ``gi_confidence_bin`` reproduces ArcGIS's ``Gi_Bin`` 90/95/99 % confidence
+    classes.
 Steps
     1. drop units with NaN in ``value_col``; 2. resolve weights; 3. compute
     the local statistic + p-values; 4. adjust p (FDR) and label each unit
@@ -25,7 +29,7 @@ Inputs → Outputs
     ``gdf`` carries the per-unit statistic, p-values and label.
 
 Every function takes a Dataset and ``weights`` as either a kind string
-("queen"/"rook"/"knn"/"network"), a pre-built libpysal ``W``, or a builder
+("queen"/"rook"/"knn"), a pre-built libpysal ``W``, or a builder
 callable. Call ``.summary()`` on a result to print a breakdown.
 """
 from __future__ import annotations
@@ -37,7 +41,6 @@ import numpy as np
 
 from crime.core.metadata import ResultMeta, dataset_meta_of
 from crime.esri.inference import benjamini_hochberg
-from crime.esri.permutation import local_moran_counts, pseudo_p, tail_counts
 from crime.esri.weights import resolve_weights, weights_tag
 
 _QUAD = {1: "HH", 2: "LH", 3: "LL", 4: "HL"}
@@ -82,16 +85,17 @@ def local_moran(
     *,
     value_col: str = "crime_count",
     weights="queen",
-    permutations: int = 9999,
+    permutations: int = 499,
     alpha: float = 0.05,
     fdr: bool = True,
     seed: int = 42,
-    tie_rule: str = "esda",
 ) -> LisaResult:
-    """``fdr=True`` (default) labels on Benjamini-Hochberg adjusted p-values —
-    the right call when scanning many units. ``fdr=False`` uses raw p.
-    ``tie_rule`` other than ``"esda"`` replaces esda's pseudo p with
-    :func:`crime.esri.permutation.pseudo_p` (see that module for why)."""
+    """Local Moran's I with esda's conditional-permutation pseudo p-value
+    (``Moran_Local.p_sim``). ``permutations=499`` is the ArcGIS Pro "Cluster
+    and Outlier Analysis" default; ``seed`` fixes the permutation draws.
+    ``fdr=True`` (default) labels on Benjamini-Hochberg adjusted p-values
+    across units — the right call when scanning many units. ``fdr=False``
+    uses raw p."""
     from esda.moran import Moran_Local
 
     gdf = dataset.metric().dropna(subset=[value_col]).reset_index(drop=True)
@@ -102,16 +106,11 @@ def local_moran(
     )
     gdf["lisa_I"] = lisa.Is
     gdf["quadrant"] = [_QUAD[q] for q in lisa.q]
-    if permutations and tie_rule != "esda":
-        x = gdf[value_col].astype(float).values
-        gt, eq, lt = local_moran_counts(x, w, permutations, seed=seed)
-        gdf["p_value"] = pseudo_p(gt, eq, lt, permutations, tie_rule, local_sum=w.sparse @ x + x)
-    else:
-        gdf["p_value"] = lisa.p_sim
+    gdf["p_value"] = lisa.p_sim
     res = LisaResult(gdf=gdf, value_col=value_col, meta=ResultMeta(
         method="Local Moran's I (LISA)", reference="Anselin 1995; PySAL esda.Moran_Local",
         params=dict(value_col=value_col, weights=weights_tag(weights), permutations=permutations,
-                    alpha=alpha, fdr=fdr, seed=seed, tie_rule=tie_rule),
+                    alpha=alpha, fdr=fdr, seed=seed),
         dataset=dataset_meta_of(dataset),
     ))
     p_values = gdf["p_value"].to_numpy()
@@ -134,14 +133,6 @@ def gi_star_weights(y, w, *, transform: str = "R"):
                        permutations=0).w.sparse.tocsr()
 
 
-def gi_star_pseudo_p(y, w, permutations: int, seed: int, tie_rule: str) -> np.ndarray:
-    """Gi* pseudo p under a :data:`crime.esri.permutation.TIE_RULES` rule."""
-    x = np.asarray(y, dtype=float)
-    W = gi_star_weights(x, w)
-    gt, eq, lt = tail_counts(x, W, permutations, seed=seed)
-    return pseudo_p(gt, eq, lt, permutations, tie_rule, local_sum=W @ x)
-
-
 def gi_star_z(y, w, *, transform: str = "R") -> tuple[np.ndarray, np.ndarray]:
     """Gi* z-scores and analytic p-values for **general** weights.
 
@@ -154,16 +145,19 @@ def gi_star_z(y, w, *, transform: str = "R") -> tuple[np.ndarray, np.ndarray]:
         z_i = (sum_j w_ij x_j - xbar W_i) / (s sqrt((N S2_i - W_i^2) / (N - 1)))
 
     with ``W_i = sum_j w_ij``, ``S2_i = sum_j w_ij^2``, ``s^2 = mean(x^2) - xbar^2``.
-    Identical to esda for binary weights. ``p`` keeps esda's ``p_norm``
-    convention (``norm.sf(|z|)``). Permutation p-values are unaffected.
+    Identical to esda's ``Zs`` for binary weights. ``p`` is the **two-sided**
+    normal p-value ``2 * norm.sf(|z|)`` (the ArcGIS Pro Gi* convention); esda's
+    ``p_norm`` is the one-sided ``norm.sf(|z|)``, i.e. half of this. A
+    constant ``y`` has no z: both arrays are NaN.
 
-    The weights come from a permutation-free ``G_Local``: with
-    ``permutations > 0`` esda zeroes the diagonal of ``gi.w`` while simulating,
-    so a permuted result's ``w`` no longer holds the Gi* weights.
+    The weights come from a permutation-free ``G_Local`` (with
+    ``permutations > 0`` esda zeroes the diagonal of ``gi.w`` while simulating).
     """
     from scipy.stats import norm
 
     x = np.asarray(y, dtype=float)
+    if np.ptp(x) == 0:                  # zero variance: z undefined (round-off would give ±inf)
+        return np.full(len(x), np.nan), np.full(len(x), np.nan)
     W = gi_star_weights(x, w, transform=transform)
     N = len(x)
     xbar = x.mean()
@@ -171,7 +165,7 @@ def gi_star_z(y, w, *, transform: str = "R") -> tuple[np.ndarray, np.ndarray]:
     W1 = np.asarray(W.sum(axis=1)).ravel()
     S2 = np.asarray(W.multiply(W).sum(axis=1)).ravel()
     z = (W @ x - xbar * W1) / (s * np.sqrt((N * S2 - W1 ** 2) / (N - 1)))
-    return z, norm.sf(np.abs(z))
+    return z, 2.0 * norm.sf(np.abs(z))
 
 
 @dataclass
@@ -186,9 +180,8 @@ class GiStarResult:
         self.gdf["p_adjusted"] = p_values
         self.gdf["significant"] = self.gdf["p_adjusted"] < alpha
         # Same zero-variance guard as LisaResult.relabel (see its comment):
-        # a zero-variance value_col makes G_Local's Zs NaN while the
-        # permutation p-value can still floor near 0, so without this check
-        # `NaN > 0` (False) silently mislabels every such unit "coldspot".
+        # a zero-variance value_col makes the Gi* z NaN, and without this
+        # check `NaN > 0` (False) would silently mislabel a unit "coldspot".
         self.gdf["label"] = np.select(
             [self.gdf["gi_z"].isna(), ~self.gdf["significant"], self.gdf["gi_z"] > 0],
             ["no data", "ns", "hotspot"],
@@ -205,36 +198,25 @@ def getis_ord_gi(
     *,
     value_col: str = "crime_count",
     weights="queen",
-    permutations: int = 9999,
     alpha: float = 0.05,
     fdr: bool = True,
-    seed: int = 42,
-    tie_rule: str = "esda",
 ) -> GiStarResult:
-    """``fdr=True`` (default) labels on Benjamini-Hochberg adjusted p-values —
-    the right call when scanning many units. ``fdr=False`` uses raw p.
-    ``tie_rule`` other than ``"esda"`` replaces esda's pseudo p with
-    :func:`crime.esri.permutation.pseudo_p` (see that module for why)."""
-    from esda.getisord import G_Local
-
-    np.random.seed(seed)
+    """Gi* with the analytic z-score (:func:`gi_star_z`) and its two-sided
+    normal p-value — the ArcGIS Pro "Hot Spot Analysis" default; no
+    permutations, so the result is deterministic. ``fdr=True`` (default)
+    labels on Benjamini-Hochberg adjusted p-values across all units.
+    ``fdr=False`` uses raw p. A constant ``value_col`` has no z (NaN) and is
+    labelled "no data"."""
     gdf = dataset.metric().dropna(subset=[value_col]).reset_index(drop=True)
     w = resolve_weights(gdf, weights)
-    print(f"Getis-Ord Gi* — {len(gdf)} units, {permutations} permutations{' + FDR' if fdr else ''}")
-    gi = G_Local(gdf[value_col].astype(float).values, w, star=True, permutations=permutations)
+    print(f"Getis-Ord Gi* — {len(gdf)} units, analytic z{' + FDR' if fdr else ''}")
     z, p_norm = gi_star_z(gdf[value_col].astype(float).values, w)
     gdf["gi_z"] = z
-    # analytic p-values from the general-weights z when permutations=0;
-    # esda's simulated p-values as ``p_sim`` otherwise.
-    if permutations and tie_rule != "esda":
-        gdf["p_value"] = gi_star_pseudo_p(gdf[value_col].astype(float).values, w,
-                                          permutations, seed, tie_rule)
-    else:
-        gdf["p_value"] = gi.p_sim if permutations else p_norm
+    gdf["p_value"] = p_norm
     res = GiStarResult(gdf=gdf, value_col=value_col, meta=ResultMeta(
         method="Getis-Ord Gi*", reference="Getis & Ord 1992; Ord & Getis 1995; PySAL esda.G_Local",
-        params=dict(value_col=value_col, weights=weights_tag(weights), permutations=permutations,
-                    alpha=alpha, fdr=fdr, seed=seed, tie_rule=tie_rule),
+        params=dict(value_col=value_col, weights=weights_tag(weights), inference="analytic",
+                    alpha=alpha, fdr=fdr),
         dataset=dataset_meta_of(dataset),
     ))
     p_values = gdf["p_value"].to_numpy()
@@ -279,14 +261,15 @@ def weights_sensitivity(
     stat: str = "gi",
     value_col: str = "crime_count",
     kinds=("queen", "rook", "knn"),
-    permutations: int = 999,
+    permutations: int = 499,
     alpha: float = 0.05,
     fdr: bool = True,
     seed: int = 42,
 ):
     """Re-run ``stat`` ("gi" | "lisa") under several spatial-weights schemes and
     report how stable the per-unit labels are (a robustness check; project-
-    specific summary).
+    specific summary). ``permutations`` / ``seed`` apply to LISA only (Gi* is
+    analytic).
 
     Returns ``(labels, stability)``: ``labels`` is a unit x kind DataFrame of the
     significance label; ``stability`` is a Series with the share of units whose
@@ -294,11 +277,13 @@ def weights_sensitivity(
     """
     import pandas as pd
 
-    runner = getis_ord_gi if stat == "gi" else local_moran
     labels = {}
     for kind in kinds:
-        res = runner(dataset, value_col=value_col, weights=kind,
-                     permutations=permutations, alpha=alpha, fdr=fdr, seed=seed)
+        if stat == "gi":
+            res = getis_ord_gi(dataset, value_col=value_col, weights=kind, alpha=alpha, fdr=fdr)
+        else:
+            res = local_moran(dataset, value_col=value_col, weights=kind,
+                              permutations=permutations, alpha=alpha, fdr=fdr, seed=seed)
         labels[kind] = res.gdf.set_index(res.gdf.get("unit_id", res.gdf.index))["label"]
     labels = pd.DataFrame(labels)
     ref = labels[kinds[0]]

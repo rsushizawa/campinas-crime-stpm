@@ -29,7 +29,7 @@ Inputs → Outputs
     ``z_matrix`` and hot/cold masks as ``unit x period``).
 
     from crime import emerging_hotspots
-    ehsa = emerging_hotspots(ds, freq="ME", weights="queen")   # or weights="network"
+    ehsa = emerging_hotspots(ds, freq="ME", weights="queen")
 
 ``freq`` is a pandas offset alias ("h", "D", "ME", "YE") or one of two cyclic
 bins: "hour" (0-23) and "day_period" (madrugada/manhã/tarde/noite).
@@ -47,7 +47,7 @@ from crime.core.metadata import ResultMeta, dataset_meta_of
 from crime.data.artifacts import load_gdf, read_layer, register_artifact, save_gdf, write_layer
 from crime.esri.cube import space_time_cube
 from crime.esri.inference import benjamini_hochberg
-from crime.esri.local import gi_star_pseudo_p, gi_star_z
+from crime.esri.local import gi_star_z
 from crime.esri.trend import trend_test
 from crime.esri.weights import resolve_weights, space_time_weights, weights_tag
 
@@ -83,20 +83,14 @@ class EhsaResult:
 # --------------------------------------------------------------------------- #
 #  Gi* over the cube
 # --------------------------------------------------------------------------- #
-def gi_time_series(wide: pd.DataFrame, w, *, alpha: float = 0.05, fdr: bool = True,
-                   permutations: int = 0, seed: int = 42, tie_rule: str = "esda"):
+def gi_time_series(wide: pd.DataFrame, w, *, alpha: float = 0.05, fdr: bool = True):
     """Per-time-slice Getis-Ord Gi* over a ``unit x period`` matrix.
 
-    Returns ``(z, p, hot, cold)`` as ``unit x period`` arrays: Gi* z-scores,
-    p-values (Benjamini-Hochberg-corrected per slice when ``fdr``), and the hot /
-    cold significance masks. ``permutations=0`` uses the analytic normal p-value
-    (fast, poor on sparse mostly-zero data); ``permutations>0`` uses a
-    **conditional-permutation** pseudo p-value (``esda`` ``p_sim`` — the right
-    call for grid / street-segment cubes). ``tie_rule`` other than ``"esda"``
-    replaces esda's pseudo p with :func:`crime.esri.permutation.pseudo_p`.
+    Returns ``(z, p, hot, cold)`` as ``unit x period`` arrays: Gi* z-scores
+    (:func:`~crime.esri.local.gi_star_z`), two-sided analytic normal p-values
+    (Benjamini-Hochberg-corrected per slice when ``fdr``), and the hot / cold
+    significance masks. A constant slice gets ``z = 0``, ``p = 1``.
     """
-    from esda.getisord import G_Local
-
     z_cols, p_cols = [], []
     for col in wide.columns:
         values = wide[col].to_numpy(dtype=float)
@@ -108,23 +102,15 @@ def gi_time_series(wide: pd.DataFrame, w, *, alpha: float = 0.05, fdr: bool = Tr
             continue
         z, p_norm = gi_star_z(values, w)
         z_cols.append(z)
-        if permutations and tie_rule != "esda":
-            praw = gi_star_pseudo_p(values, w, permutations, seed, tie_rule)
-        elif permutations:
-            praw = G_Local(wide[col].values, w, star=True, permutations=permutations,
-                           keep_simulations=False, seed=seed).p_sim
-        else:
-            praw = p_norm
-        p_cols.append(benjamini_hochberg(praw) if fdr else praw)
+        p_cols.append(benjamini_hochberg(p_norm) if fdr else p_norm)
     z = np.column_stack(z_cols)
     p = np.column_stack(p_cols)
     return z, p, (z > 0) & (p < alpha), (z < 0) & (p < alpha)
 
 
 def gi_space_time(wide: pd.DataFrame, w, *, time_step: int = 1, taper: bool = False,
-                  alpha: float = 0.05, fdr: bool = True, permutations: int = 0,
-                  seed: int = 42, temporal_direction: str = "backward",
-                  tie_rule: str = "esda"):
+                  alpha: float = 0.05, fdr: bool = True,
+                  temporal_direction: str = "backward"):
     """Space-**time** Getis-Ord Gi* (ArcGIS EHSA style): the statistic for cell
     ``(i, t)`` borrows strength from unit *i*'s spatial neighbours in the time
     window ``[t - time_step, t]`` by default (or symmetric explicitly), and is standardised against the
@@ -132,9 +118,10 @@ def gi_space_time(wide: pd.DataFrame, w, *, time_step: int = 1, taper: bool = Fa
 
     Built as one big Gi* over the stacked ``n·T`` cube with a block weights
     matrix (spatial ``w`` replicated across the time window, ``taper=True`` down-
-    weights ``1/(1+|Δt|)``). Returns ``(z, p, hot, cold)`` shaped ``unit x period``.
+    weights ``1/(1+|Δt|)``). p is the two-sided analytic normal p-value,
+    BH-corrected per time slice when ``fdr``. Returns ``(z, p, hot, cold)``
+    shaped ``unit x period``.
     """
-    from esda.getisord import G_Local
     from libpysal.weights import WSP
 
     n, T = wide.shape
@@ -149,14 +136,7 @@ def gi_space_time(wide: pd.DataFrame, w, *, time_step: int = 1, taper: bool = Fa
     W_st = WSP(W_st).to_W()
     z_flat, p_norm = gi_star_z(x, W_st)
     z = z_flat.reshape(T, n).T
-    if permutations and tie_rule != "esda":
-        p_flat = gi_star_pseudo_p(x, W_st, permutations, seed, tie_rule)
-    elif permutations:
-        p_flat = G_Local(x, W_st, star=True, permutations=permutations,
-                         keep_simulations=False, seed=seed).p_sim
-    else:
-        p_flat = p_norm
-    praw = p_flat.reshape(T, n).T
+    praw = p_norm.reshape(T, n).T
     p = np.column_stack([benjamini_hochberg(praw[:, t]) if fdr else praw[:, t] for t in range(T)])
     return z, p, (z > 0) & (p < alpha), (z < 0) & (p < alpha)
 
@@ -167,15 +147,18 @@ def gi_space_time(wide: pd.DataFrame, w, *, time_step: int = 1, taper: bool = Fa
 def emerging_hotspots(
     dataset, *, freq: str = "ME", weights="queen", alpha: float = 0.05,
     hot_share: float = 0.9, rate: bool = False, fdr: bool = True,
-    trend_fdr: bool | None = None, permutations: int = 0,
+    trend_fdr: bool | None = None,
     neighbourhood: str = "space", time_step: int = 1, matrix=None,
     temporal_direction: str = "backward", trend_method="hamed_rao",
-    trend_max_lag: int = 3, seed: int = 42, tie_rule: str = "esda",
+    trend_max_lag: int = 3,
 ) -> EhsaResult:
     """Gi* per time slice + Mann-Kendall trend -> the standard EHSA categories.
 
+    Gi* inference is analytic (general-weights z, two-sided normal p), as in
+    ArcGIS Pro's Emerging Hot Spot Analysis — deterministic, no permutations.
+
     ``rate=True``  — divide each unit's per-bin count by an exposure before Gi*
-      (population/1000 for sector & grid, segment length/1000 for network), so
+      (population/1000), so
       low-crime low-exposure areas can register as significantly *cold*. Raw
       counts rarely produce cold spots.
       Units with zero/missing exposure (``rate=True``) are excluded from the Gi*
@@ -185,12 +168,6 @@ def emerging_hotspots(
       before the hot/cold threshold. **Default True** (thousands of per-bin
       tests). Esri also documents FDR; per-slice BH here is our explicit
       testing family, not a claim of numerical equivalence to Esri.
-    ``permutations`` — 0 (default) uses the analytic Gi* p; ``>0`` switches to a
-      **conditional-permutation** pseudo p (recommended for sparse grid /
-      street-segment cubes where the normal approximation is poor).
-    ``tie_rule``   — how permutation ties are counted (:data:`crime.esri.permutation.TIE_RULES`).
-      ``"esda"`` (default) keeps esda's p, which treats an all-zero
-      neighbourhood as maximally extreme; see :mod:`crime.esri.permutation`.
     ``neighbourhood`` — ``"space"`` (default, Gi* slice by slice) or
       ``"spacetime"`` (:func:`gi_space_time` — each cell borrows strength from
       its spatial neighbours in the requested temporal window, standardised
@@ -226,15 +203,13 @@ def emerging_hotspots(
     w = resolve_weights(gdf_valid, weights)
     print(f"EHSA — Gi* ({neighbourhood}) on {wide_valid.shape[1]} time slices x {len(gdf_valid)} units"
           f"{' (rate)' if rate else ''}{' + FDR' if fdr else ''}"
-          f"{f' + {permutations} perms' if permutations else ''}"
           f"{' + trend-FDR' if trend_fdr else ''}"
           f"{f'  ({(~valid).sum()} units excluded: no exposure data)' if (~valid).any() else ''}")
-    _gi = (lambda: gi_space_time(wide_valid, w, time_step=time_step, alpha=alpha, fdr=fdr,
-                                 permutations=permutations, temporal_direction=temporal_direction,
-                                 seed=seed, tie_rule=tie_rule)) if neighbourhood == "spacetime" \
-        else (lambda: gi_time_series(wide_valid, w, alpha=alpha, fdr=fdr, permutations=permutations,
-                                     seed=seed, tie_rule=tie_rule))
-    z, p, hot, cold = _gi()
+    if neighbourhood == "spacetime":
+        z, p, hot, cold = gi_space_time(wide_valid, w, time_step=time_step, alpha=alpha, fdr=fdr,
+                                        temporal_direction=temporal_direction)
+    else:
+        z, p, hot, cold = gi_time_series(wide_valid, w, alpha=alpha, fdr=fdr)
 
     trend = trend_test(trend_method, max_lag=trend_max_lag)
     mk = np.array([trend(row) for row in z])
@@ -265,8 +240,8 @@ def emerging_hotspots(
     spec = dict(freq=freq, weights=str(weights) if isinstance(weights, str) else "custom",
                 neighbourhood=neighbourhood, temporal_direction=temporal_direction,
                 time_step=time_step, trend_method=trend_tag, trend_max_lag=trend_max_lag,
-                permutations=permutations, fdr=fdr, trend_fdr=trend_fdr, alpha=alpha,
-                hot_share=hot_share, rate=rate, seed=seed, tie_rule=tie_rule)
+                inference="analytic", fdr=fdr, trend_fdr=trend_fdr, alpha=alpha,
+                hot_share=hot_share, rate=rate)
     meta = ResultMeta(method="Emerging Hot Spot Analysis", reference=REFERENCE,
                       params={**spec, "weights": weights_tag(weights), "matrix": matrix is not None},
                       dataset=dataset_meta_of(dataset))
@@ -275,14 +250,11 @@ def emerging_hotspots(
 
 
 def _exposure(dataset, gdf) -> pd.Series:
-    """Denominator for rate-based EHSA: population/1000 (sector, grid) or
-    segment length/1000 (network). Zero/NaN exposure -> NaN (masked out)."""
-    if dataset.unit == "segment" and "length" in gdf:
-        exp = gdf["length"] / 1000.0
-    elif "pop_total" in gdf:
-        exp = gdf["pop_total"] / 1000.0
-    else:
-        raise ValueError("rate=True needs 'pop_total' (sector/grid) or 'length' (segment).")
+    """Denominator for rate-based EHSA: population/1000 (sector, grid).
+    Zero/NaN exposure -> NaN (masked out)."""
+    if "pop_total" not in gdf:
+        raise ValueError("rate=True needs a 'pop_total' column.")
+    exp = gdf["pop_total"] / 1000.0
     return exp.where(exp > 0)
 
 
