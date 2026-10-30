@@ -156,6 +156,24 @@ def tract_attributes(tracts: gpd.GeoDataFrame, *, census: pd.DataFrame, income: 
 POI_SPECIES = {"4": "n_education", "5": "n_health", "6": "n_commercial", "8": "n_religious"}
 
 
+def cnefe_poi_points(cnefe_path: Path) -> gpd.GeoDataFrame:
+    """CNEFE 2022 address points of the POI use types in :data:`POI_SPECIES`,
+    deduplicated on (``COD_UNICO_ENDERECO``, ``COD_ESPECIE``) (issue #18), with
+    a ``poi`` column naming the type (``n_commercial`` ...). CRS as stored in
+    the file (WGS84). Shared by :func:`poi_counts` (tracts) and any other
+    support, which assigns the points with
+    :func:`crime.data.units.assign_points`."""
+    import pyogrio
+
+    codes = ", ".join(f"'{c}'" for c in POI_SPECIES)
+    pts = pyogrio.read_dataframe(cnefe_path, columns=["COD_UNICO_ENDERECO", "COD_ESPECIE"],
+                                 where=f"COD_ESPECIE IN ({codes})")
+    pts["COD_ESPECIE"] = pts["COD_ESPECIE"].astype(str)
+    pts = pts.drop_duplicates(subset=["COD_UNICO_ENDERECO", "COD_ESPECIE"]).reset_index(drop=True)
+    pts["poi"] = pts["COD_ESPECIE"].map(POI_SPECIES)
+    return pts
+
+
 def poi_counts(cnefe_path: Path, tracts: gpd.GeoDataFrame) -> pd.DataFrame:
     """CNEFE addresses per tract (``unit_id`` index) for each POI use type in
     :data:`POI_SPECIES`, by **point-in-polygon** on the 2022 tract polygons the
@@ -167,13 +185,7 @@ def poi_counts(cnefe_path: Path, tracts: gpd.GeoDataFrame) -> pd.DataFrame:
     addresses it disagrees with the polygon the point lies in (and 540 of its
     codes are not 2022 tract ids at all), so a code join would lose or move
     ~28% of them. ``vw_sector_features`` still uses the code join."""
-    import pyogrio
-
-    codes = ", ".join(f"'{c}'" for c in POI_SPECIES)
-    pts = pyogrio.read_dataframe(cnefe_path, columns=["COD_UNICO_ENDERECO", "COD_ESPECIE"],
-                                 where=f"COD_ESPECIE IN ({codes})")
-    pts["COD_ESPECIE"] = pts["COD_ESPECIE"].astype(str)
-    pts = pts.drop_duplicates(subset=["COD_UNICO_ENDERECO", "COD_ESPECIE"])
+    pts = cnefe_poi_points(cnefe_path)
     j = gpd.sjoin(pts.to_crs(tracts.crs), tracts[["unit_id", "geometry"]], how="inner", predicate="within")
     j = j[~j.index.duplicated(keep="first")]
     out = pd.crosstab(j["unit_id"], j["COD_ESPECIE"].map(POI_SPECIES))

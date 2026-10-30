@@ -82,7 +82,7 @@ def space_time_lisa(
         labels[col] = np.where(sig, [_QUAD[q] for q in lisa.q], "ns")
 
     labels = pd.DataFrame(labels, index=wide.index)
-    sig_labels = labels.replace("ns", np.nan)
+    sig_labels = labels.mask(labels.eq("ns"))
     out = dataset.gdf.copy()
     out["n_hh"] = (labels == "HH").sum(axis=1).values
     out["n_ll"] = (labels == "LL").sum(axis=1).values

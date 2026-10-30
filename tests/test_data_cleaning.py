@@ -84,3 +84,17 @@ def test_poi_counts_dedup_on_address_and_use_type(tmp_path):
     assert out.loc["t1_0"].sum() == 1                   # B is a dwelling, not counted
     assert int(out.to_numpy().sum()) == 3               # D lies outside every tract
     assert list(out.columns) == ["n_education", "n_health", "n_commercial", "n_religious"]
+
+
+def test_cnefe_poi_points_dedup_and_type(tmp_path):
+    """The shared CNEFE reader keeps only POI use types, one row per
+    (address, use type), and names the type in ``poi``."""
+    from crime.data.cleaning import cnefe_poi_points
+
+    pts = gpd.GeoDataFrame(
+        {"COD_UNICO_ENDERECO": ["A", "A", "A", "B"], "COD_ESPECIE": ["6", "6", "5", "1"]},
+        geometry=gpd.points_from_xy([0, 0, 0, 1], [0, 0, 0, 1]), crs="EPSG:31983").to_crs(4674)
+    path = tmp_path / "cnefe.geojson"
+    pts.to_file(path, driver="GeoJSON")
+    out = cnefe_poi_points(path)
+    assert sorted(out["poi"]) == ["n_commercial", "n_health"]

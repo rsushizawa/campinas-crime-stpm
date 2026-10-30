@@ -188,6 +188,36 @@ def assign_points(points: gpd.GeoDataFrame, units: gpd.GeoDataFrame) -> pd.Serie
     return out
 
 
+def areal_interpolate(source: gpd.GeoDataFrame, target: gpd.GeoDataFrame, cols) -> pd.DataFrame:
+    """Area-weighted interpolation of **extensive** ``cols`` (counts such as
+    population) from ``source`` units to ``target`` units.
+
+    Each source value is split over the target units in proportion to the
+    share of the source polygon's area that falls in each of them, then
+    summed per target: ``y_t = Σ_s x_s · |s ∩ t| / |s|`` — the areal
+    weighting method of Goodchild & Lam (1980), which assumes the quantity
+    is spread uniformly within each source unit. Both frames need
+    ``unit_id`` + geometry; areas are measured in the metric CRS. NaN source
+    values contribute nothing. Source area outside every target is lost, so
+    totals are preserved only when the targets cover the sources. Returns a
+    DataFrame indexed by the target ``unit_id`` (0 for targets that overlap no
+    source).
+    """
+    cols = list(cols)
+    src = source[["unit_id", *cols, "geometry"]].to_crs(CRS_METRIC).reset_index(drop=True)
+    tgt = target[["unit_id", "geometry"]].to_crs(CRS_METRIC).reset_index(drop=True)
+    src_area = src.geometry.area.to_numpy()
+    s_idx, t_idx = shapely.STRtree(tgt.geometry.values).query(src.geometry.values, predicate="intersects")
+    inter = shapely.area(shapely.intersection(src.geometry.values[s_idx], tgt.geometry.values[t_idx]))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        share = np.where(src_area[s_idx] > 0, inter / src_area[s_idx], 0.0)
+    out = pd.DataFrame(0.0, index=pd.Index(tgt["unit_id"], name="unit_id"), columns=cols)
+    for c in cols:
+        contrib = np.nan_to_num(src[c].to_numpy(dtype=float)[s_idx] * share)
+        out[c] = np.bincount(t_idx, weights=contrib, minlength=len(tgt))
+    return out
+
+
 def unit_dataset(
     kind: Kind,
     *,

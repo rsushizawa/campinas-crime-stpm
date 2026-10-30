@@ -171,3 +171,30 @@ def test_unit_dataset_pandas_string_dtype(bulletins):
     ds = unit_dataset("square", area_km2=1.0, years=(2022, 2023), bulletins=b, units=units,
                       crime_group="property")
     assert ds.gdf["crime_count"].sum() > 0
+
+
+# ------------------------------------------------------------------ areal interpolation
+def test_areal_interpolate_splits_by_area_share():
+    from crime.data.units import areal_interpolate
+
+    # two 1 km x 2 km source rectangles, values 100 and 40; targets: 2 x 2 squares of 1 km
+    src = gpd.GeoDataFrame({"unit_id": ["a", "b"], "pop": [100.0, 40.0]},
+                           geometry=[box(X0, Y0, X0 + 1000, Y0 + 2000),
+                                     box(X0 + 1000, Y0, X0 + 2000, Y0 + 2000)], crs=CRS_METRIC)
+    tgt = tessellation(gpd.GeoDataFrame(geometry=[box(X0, Y0, X0 + 2000, Y0 + 2000)], crs=CRS_METRIC),
+                       shape="square", area_km2=1.0)
+    out = areal_interpolate(src, tgt, ["pop"])
+    assert out["pop"].sum() == pytest.approx(140.0)                 # total preserved
+    left = tgt.geometry.centroid.x < X0 + 1000
+    assert np.allclose(out.loc[tgt.loc[left, "unit_id"], "pop"], 50.0)
+    assert np.allclose(out.loc[tgt.loc[~left, "unit_id"], "pop"], 20.0)
+
+
+def test_areal_interpolate_identity_and_nan():
+    from crime.data.units import areal_interpolate
+
+    src = gpd.GeoDataFrame({"unit_id": ["a", "b"], "v": [3.0, np.nan]},
+                           geometry=[box(X0, Y0, X0 + 10, Y0 + 10), box(X0 + 10, Y0, X0 + 20, Y0 + 10)],
+                           crs=CRS_METRIC)
+    out = areal_interpolate(src, src, ["v"])
+    assert out.loc["a", "v"] == pytest.approx(3.0) and out.loc["b", "v"] == 0.0
