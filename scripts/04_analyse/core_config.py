@@ -87,6 +87,10 @@ ASSOCIATION = {
     "crime_years": ((2022, 2025), (2022, 2022)),     # project choice
     "features_all_supports": ("pop_total", "n_commercial", "n_education", "n_health", "n_religious"),
     "features_tract_only": ("income_head_mean", "literacy_rate"),
+    # "count": raw counts per unit (partly reflect unit area / population);
+    # "per_km2": crime per km2 vs features_all_supports per km2 (tract-only features are
+    # already intensive and appear on the count scale only)
+    "scales": ("count", "per_km2"),            # project choice
     # population on non-tract supports: tract pop_total split by area share (Goodchild & Lam 1980)
     "population_interpolation": "area_share",  # project choice
     "local_support": "tract",                  # project choice

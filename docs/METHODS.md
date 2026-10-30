@@ -38,7 +38,11 @@ Anselin 2007). Queen contiguity, rook contiguity and k-nearest neighbours
 between unit centroids with k = 5 (project choice: the median queen neighbour
 count of tracts, computed and logged in `outputs/core/weights_info.json`). All
 weights are row-standardised. Queen is the headline neighbourhood (project
-choice); rook and knn are sensitivity runs.
+choice); rook and knn are sensitivity runs. The only units without a
+neighbour (islands) are two UTBs under rook ("UTR - Campo Grande 3" and
+"4", which touch the rest only at a corner); every local statistic labels an
+island "no data" and leaves it out of the BH family (`weights_info.csv`,
+column `islands`).
 
 ## 1. When: monthly series and STL decomposition
 
@@ -139,10 +143,13 @@ month (48 bins).
   weights its own value at t by 1/4, its own value at t − 1 by 1/4, its
   neighbours at t by 1/4 in total and its neighbours at t − 1 by 1/4 in total:
   **half own history, half neighbours**. In the first bin (no previous bin)
-  the own value gets the same weight as each neighbour, 1/(k + 1). Esri uses
-  binary weights over the space-time neighbourhood ("How Emerging Hot Spot
-  Analysis works"), so each neighbour-bin counts equally there; the code's
-  weighting is a project convention, not an Esri clone.
+  the own value gets the same weight as each neighbour, 1/(k + 1). Esri ("How
+  Emerging Hot Spot Analysis works", "How Create Space Time Cube works")
+  defines the space-time neighbourhood — the bins within the neighbourhood
+  distance and the neighbourhood time step — but, as far as we found, does
+  not document how the neighbour-bins are weighted relative to each other.
+  The code's weighting is therefore a project convention, not a reproduction
+  of Esri's.
 - **Inference.** Two-sided analytic p per cell, BH within each time bin; a
   cell is hot (cold) if z > 0 (< 0) and adjusted p < 0.05.
 - **Trend.** Mann–Kendall on each unit's Gi* z series with the Hamed–Rao
@@ -159,7 +166,8 @@ month (48 bins).
   modified Mann-Kendall trend test for autocorrelated data. *Journal of
   Hydrology* 204. Benjamini, Y. & Hochberg, Y. (1995). Controlling the false
   discovery rate. *JRSS B* 57(1).
-- **Esri differences.** Binary vs row-standardised space-time weights (above);
+- **Esri differences.** The space-time weighting above (Esri's is not
+  documented, so equality cannot be claimed);
   Esri applies plain Mann–Kendall, here Hamed–Rao; FDR families (per bin for
   Gi*, across units for the trend) are this project's.
 
@@ -167,7 +175,9 @@ month (48 bins).
 
 - **Tests.** Local Moran's I on every time bin separately (per-bin BH, 499
   permutations); per unit, the number of HH and LL bins and the modal
-  significant label.
+  significant label. Ties in the mode are broken by the fixed order HH, LL,
+  HL, LH (clusters before outliers; project choice); a unit never
+  significant is `ns`.
 - **Citation.** Anselin (1995).
 - **Esri.** "Local Outlier Analysis" uses a space-time neighbourhood on the
   cube; the slice-by-slice application here is a project choice.
@@ -215,7 +225,12 @@ LL) and `ehsa_by_unit/<support>.parquet`.
   distribution of the flora in the alpine zone. *New Phytologist* 11(2).
 - **Esri.** No counterpart.
 - **Outputs.** `maup_supports.csv`, `maup_weights.csv`. Agreement is counted
-  per tract (unweighted by area or population).
+  per tract (unweighted by area or population). Jaccard is NaN when neither
+  labelling has a unit of that class: no support yields a single Gi* or EHSA
+  cold spot in this run (`ref_cold` = `support_cold_on_ref` = 0 in every
+  row), so `coldspot_jaccard` in `maup_supports.csv` and the Gi* / EHSA
+  `cold_jaccard` in `maup_weights.csv` are NaN throughout, and kappa and
+  agreement there reflect hot spots vs the rest only.
 
 ## 6. Point patterns
 
@@ -297,6 +312,16 @@ the distinct-location set (street-level geocodes stacked on one point), so Riple
   uniform within a tract; `crime.data.units.areal_interpolate`). Tract only:
   mean nominal monthly income of household heads (`income_head_mean`, IBGE
   `V06004`) and the literacy rate of residents aged 15+.
+- **Two scales.** Every pair is computed on **raw counts** per unit and on
+  **densities** (`scale = per_km2`: crime per km² vs the feature per km², for
+  the address counts and population; income and literacy are already
+  intensive and appear on the count scale only). Raw counts across units of
+  unequal area and population partly reflect unit size — a large tract has
+  more addresses, more residents and more bulletins for that reason alone —
+  so a positive ρ or bivariate I on counts is in part a size effect. Densities
+  remove the area component but not the population one (crime per km² still
+  rises with residents per km²); neither scale is a rate per exposed person,
+  and neither adjusts for confounding.
 - **Spearman's ρ** with its p-value (no spatial adjustment). Spearman, C.
   (1904). The proof and measurement of association between two things.
   *American Journal of Psychology* 15.
@@ -315,8 +340,8 @@ the distinct-location set (street-level geocodes stacked on one point), so Riple
   tool; it is not used here.
 - **No multiple-testing adjustment** across the feature × group × support
   table.
-- **Outputs.** `association.csv`, `association_local.csv`,
-  `association_local_by_unit.parquet`.
+- **Outputs.** `association.csv` (column `scale`: `count` or `per_km2`),
+  `association_local.csv`, `association_local_by_unit.parquet` (counts).
 
 ## Known limitations
 

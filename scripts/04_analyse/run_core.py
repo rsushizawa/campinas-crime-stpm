@@ -16,8 +16,9 @@ value there is a default the authors may change). Steps, in order:
     maup    label agreement across supports (overlay onto tracts) and weights
     points  Ripley's L, Clark-Evans NNI (all points and distinct locations), KDE
     knox    Knox near-repeat table per group
-    assoc   Spearman + bivariate Moran (crime x urban features); local bivariate
-            Moran crime x commerce on tracts
+    assoc   Spearman + bivariate Moran (crime x urban features), on raw counts and
+            per km2 (crime density x feature density); local bivariate Moran
+            crime x commerce on tracts
 
 Summary tables are **upserted** (rows for the groups/supports of this run are
 replaced, others kept), so the pipeline can be run piecemeal. ``maup`` reads
@@ -602,6 +603,7 @@ def step_assoc(ctx: Context, t: dict) -> None:
         u = ctx.units(s)
         fcols = [c for c in (*A["features_all_supports"], *(A["features_tract_only"] if s == "tract" else ()))
                  if c in feats]
+        area = u.set_index("unit_id")["area_km2"]
         for g in ctx.groups:
             ev = ctx.dataset(g, s).events
             year = pd.to_datetime(ev["data_ocorrencia"]).dt.year
@@ -612,22 +614,36 @@ def step_assoc(ctx: Context, t: dict) -> None:
                 for c in fcols:
                     gdf[c] = feats[c].reindex(gdf["unit_id"]).to_numpy(dtype=float)
                 ds = Dataset(gdf=gdf, unit=s, years=(y0, y1))
-                with timed(f"assoc: {g} x {s} x {y0}-{y1}", t), quiet():
-                    for f in fcols:
-                        ok = gdf[[f, "crime_count"]].notna().all(axis=1)
-                        rho, rp = spearmanr(gdf.loc[ok, f], gdf.loc[ok, "crime_count"])
-                        # prebuilt weights only when no unit is dropped; otherwise rebuilt on the subset
-                        w = ctx.weights(s, A["weights"]) if ok.all() else A["weights"]
-                        fx = bivariate_moran(ds, f, "crime_count", weights=w, permutations=A["permutations"],
-                                             seed=C.SEED)
-                        cx = bivariate_moran(ds, "crime_count", f, weights=w, permutations=A["permutations"],
-                                             seed=C.SEED)
-                        rows.append(dict(group=g, crime_years=f"{y0}-{y1}", support=s, feature=f, n=int(ok.sum()),
-                                         spearman_rho=float(rho), spearman_p=float(rp),
-                                         bv_I_feature_lag_crime=fx.I, bv_z_feature_lag_crime=fx.z_sim,
-                                         bv_p_feature_lag_crime=fx.p_sim,
-                                         bv_I_crime_lag_feature=cx.I, bv_z_crime_lag_feature=cx.z_sim,
-                                         bv_p_crime_lag_feature=cx.p_sim))
+                # raw counts partly reflect unit size; the per-km2 scale divides crime and the
+                # extensive (count) features by unit area so both versions are reported
+                a = area.reindex(gdf["unit_id"]).to_numpy(dtype=float)
+                dens = gdf[["unit_id", "geometry"]].copy()
+                dens["crime_count"] = gdf["crime_count"].to_numpy() / a
+                dcols = [c for c in fcols if c in A["features_all_supports"]]
+                for c in dcols:
+                    dens[c] = gdf[c].to_numpy() / a
+                scales = (("count", ds, fcols), ("per_km2", Dataset(gdf=dens, unit=s, years=(y0, y1)), dcols))
+                for scale, dsx, cols in scales:
+                    if scale not in A["scales"]:
+                        continue
+                    gx = dsx.gdf
+                    with timed(f"assoc: {g} x {s} x {y0}-{y1} ({scale})", t), quiet():
+                        for f in cols:
+                            ok = gx[[f, "crime_count"]].notna().all(axis=1)
+                            rho, rp = spearmanr(gx.loc[ok, f], gx.loc[ok, "crime_count"])
+                            # prebuilt weights only when no unit is dropped; otherwise rebuilt on the subset
+                            w = ctx.weights(s, A["weights"]) if ok.all() else A["weights"]
+                            fx = bivariate_moran(dsx, f, "crime_count", weights=w, permutations=A["permutations"],
+                                                 seed=C.SEED)
+                            cx = bivariate_moran(dsx, "crime_count", f, weights=w, permutations=A["permutations"],
+                                                 seed=C.SEED)
+                            rows.append(dict(group=g, crime_years=f"{y0}-{y1}", support=s, scale=scale,
+                                             feature=f, n=int(ok.sum()),
+                                             spearman_rho=float(rho), spearman_p=float(rp),
+                                             bv_I_feature_lag_crime=fx.I, bv_z_feature_lag_crime=fx.z_sim,
+                                             bv_p_feature_lag_crime=fx.p_sim,
+                                             bv_I_crime_lag_feature=cx.I, bv_z_crime_lag_feature=cx.z_sim,
+                                             bv_p_crime_lag_feature=cx.p_sim))
                 if s == A["local_support"] and (y0, y1) == tuple(C.YEARS):
                     with timed(f"assoc: local bivariate {g} crime x lag({A['local_feature']})", t), quiet():
                         lb = local_bivariate_moran(ds, "crime_count", A["local_feature"],
