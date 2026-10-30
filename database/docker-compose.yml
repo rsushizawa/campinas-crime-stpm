@@ -8,6 +8,10 @@
 #
 # The volume is named <project>_crime_data, so a different -p never reuses
 # (or deletes) another project's data.
+#
+# The password is never stored here: set POSTGRES_PASSWORD in the environment
+# or in the repository's .env (copy .env.example; `make db` passes it with
+# --env-file). crime.core.config.DBConfig reads the same variable.
 name: ${COMPOSE_PROJECT_NAME:-campinas-crime-stpm}
 services:
   db:
@@ -15,7 +19,7 @@ services:
     container_name: ${CRIME_DB_CONTAINER:-crime_db}
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: crime1234
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (see .env.example)}
       POSTGRES_DB: crime_db
     ports:
       - "${PGPORT:-5432}:5432"

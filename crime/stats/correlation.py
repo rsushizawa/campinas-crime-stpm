@@ -30,7 +30,6 @@ import pandas as pd
 from crime.core.config import DEMOGRAPHIC_YEAR, DBConfig
 from crime.core.metadata import ResultMeta, dataset_meta_of
 from crime.data.catalog import DEFAULT_FEATURES
-from crime.data.postgis import default_source
 
 __all__ = ["DEFAULT_FEATURES", "CorrelationResult", "CollinearityResult", "feature_correlation",
            "crime_crime_correlation", "vif_table", "feature_collinearity"]
@@ -96,6 +95,8 @@ def crime_crime_correlation(
     crimes per ``crime_slug`` then correlate the slug columns. High correlation
     = two types concentrate in the same places. ``cluster=True`` also returns a
     hierarchical linkage + a clustered column order so the matrix reads as blocks."""
+    from crime.data.postgis import default_source  # DB path only (the `db` extra)
+
     counts = default_source(db, source).slug_counts_by_unit(unit, year)
     wide = counts.pivot_table(index="unit_id", columns="crime_slug", values="n", fill_value=0)
     wide = wide.loc[:, wide.sum() >= min_total]

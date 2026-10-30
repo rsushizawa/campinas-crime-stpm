@@ -2,7 +2,7 @@
 # of police-recorded crime in Campinas (SP), 2022-2025. Stages follow Alexander (2023), Telling
 # Stories with Data (ch. 3): acquire -> clean -> test -> analyse.
 #
-#   make env              # locked environment (uv sync, uv.lock) -> .venv
+#   make env              # locked environment, all extras (uv sync, uv.lock) -> .venv
 #   make db               # PostGIS (PGPORT / CRIME_DB_CONTAINER / DB_PROJECT override the defaults)
 #   make acquire clean-data analyse   # no database needed
 #   make acquire clean validate       # + PostGIS load and validation
@@ -23,8 +23,8 @@ help:
 env:
 	uv sync --all-extras
 
-db:
-	docker compose -p $(DB_PROJECT) -f database/docker-compose.yml up -d
+db:   # password: POSTGRES_PASSWORD in the environment or in .env (cp .env.example .env)
+	docker compose -p $(DB_PROJECT) $(if $(wildcard .env),--env-file .env) -f database/docker-compose.yml up -d
 
 # 01_acquire: inputs/data (SSP-SP raw) -> outputs/data/crimes_campinas.csv
 acquire:

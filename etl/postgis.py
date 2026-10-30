@@ -13,14 +13,17 @@ import time
 
 import geopandas as gpd
 import pandas as pd
-import psycopg2
-from psycopg2.extras import execute_batch
-from sqlalchemy import text
 
 log = logging.getLogger("etl")
 
 
+# psycopg2 / SQLAlchemy (the `db` extra) are imported inside the DB functions, so
+# assign_unit (used by the database-free clean stage) works without them.
+
+
 def wait_for_db(eng, retries: int = 10, delay: float = 3.0) -> None:
+    from sqlalchemy import text
+
     for attempt in range(1, retries + 1):
         try:
             with eng.connect() as conn:
@@ -33,6 +36,8 @@ def wait_for_db(eng, retries: int = 10, delay: float = 3.0) -> None:
 
 
 def apply_sql(eng, sql: str) -> None:
+    from sqlalchemy import text
+
     with eng.begin() as conn:
         conn.execute(text(sql))
 
@@ -55,6 +60,9 @@ def _scalar(v):
 
 def write_gdf(engine, gdf: gpd.GeoDataFrame, table: str, *, srid: int = 4326,
               page_size: int = 1000) -> None:
+    import psycopg2
+    from psycopg2.extras import execute_batch
+
     non_geom = [c for c in gdf.columns if c != "geometry"]
     sql = (
         f"INSERT INTO {table} ({', '.join(non_geom + ['geometry'])}) "

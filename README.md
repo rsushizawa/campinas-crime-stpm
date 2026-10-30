@@ -84,13 +84,21 @@ The stage layout follows Alexander (2023), *Telling Stories with Data*, ch. 3.
 ## Quick start
 
 ```bash
-uv sync --all-extras          # locked environment in .venv (make env)
+uv sync --all-extras          # locked environment in .venv, every extra (make env)
+cp .env.example .env          # optional, for PostGIS: set POSTGRES_PASSWORD
 make db                       # optional: PostGIS via docker compose (not needed for the analysis)
 make acquire                  # raw SSP-SP files -> outputs/data/crimes_campinas.csv
 make clean-data               # one row per bulletin + funnel -> outputs/data/
 make analyse                  # scripts/04_analyse/run_core.py -> outputs/core/
 make test                     # pytest
 ```
+
+Extras (`pyproject.toml`): the core analysis (`import crime`, `make analyse`)
+needs none of them. `etl` = acquire / clean / validate stages; `db` =
+SQLAlchemy + psycopg2 for the PostGIS warehouse (`make clean`, `make
+validate`, `crime.load_sectors` …); `viz` = plotly + contextily (interactive
+maps, web basemaps); `dev` = pytest + ruff. E.g. `uv sync --extra etl --extra
+dev` for a database-free setup.
 
 `git lfs pull` fetches the tracked raw inputs. Two IBGE census tables are not
 tracked (size) and must be downloaded into `inputs/data/geobr/` from the URLs

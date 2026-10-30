@@ -15,7 +15,10 @@ import pytest
 
 @functools.lru_cache(maxsize=1)
 def _db_unreachable_reason() -> str | None:
-    from sqlalchemy import create_engine, text
+    try:
+        from sqlalchemy import create_engine, text
+    except ImportError:
+        return "SQLAlchemy not installed (install the `db` extra)"
 
     from crime.core.config import DBConfig
 

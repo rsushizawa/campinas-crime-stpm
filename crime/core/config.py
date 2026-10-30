@@ -11,7 +11,10 @@ Two ways to consume it:
 The database is read from ``PGHOST``/``PGPORT``/``PGDATABASE``/``PGUSER``/
 ``PGPASSWORD`` **when a ``DBConfig`` is constructed** (not at import time), so
 setting the environment after ``import crime`` still takes effect. Defaults
-match ``database/docker-compose.yml``.
+match ``database/docker-compose.yml``. There is no default password: it is
+``PGPASSWORD``, else ``POSTGRES_PASSWORD`` (the variable the compose file
+uses), from the environment or from the repository's ``.env`` (copy
+``.env.example``); empty if none is set.
 """
 from __future__ import annotations
 
@@ -67,6 +70,24 @@ def _env(name: str, default: str):
     return field(default_factory=lambda: os.getenv(name, default))
 
 
+def _dotenv(path: Path = REPO_ROOT / ".env") -> dict[str, str]:
+    """``KEY=VALUE`` lines of the repository's ``.env`` (git-ignored), if any."""
+    out: dict[str, str] = {}
+    if path.is_file():
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                out[k.strip()] = v.strip().strip("'\"")
+    return out
+
+
+def _password() -> str:
+    """``PGPASSWORD`` or ``POSTGRES_PASSWORD``, from the environment, then ``.env``."""
+    env = {**_dotenv(), **os.environ}
+    return env.get("PGPASSWORD") or env.get("POSTGRES_PASSWORD") or ""
+
+
 @dataclass(frozen=True)
 class DBConfig:
     """PostGIS connection parameters (environment-backed defaults)."""
@@ -75,7 +96,7 @@ class DBConfig:
     port: int = field(default_factory=lambda: int(os.getenv("PGPORT", "5432")))
     database: str = _env("PGDATABASE", "crime_db")
     user: str = _env("PGUSER", "admin")
-    password: str = field(default_factory=lambda: os.getenv("PGPASSWORD", "crime1234"), repr=False)
+    password: str = field(default_factory=_password, repr=False)
 
     @property
     def url(self) -> str:

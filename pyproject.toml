@@ -17,19 +17,20 @@ dependencies = [
     "scipy==1.16.3",
     "scikit-learn==1.7.2",
     "statsmodels==0.15.0",
-    "SQLAlchemy==2.0.43",
-    "psycopg2-binary==2.9.12",
     "matplotlib==3.10.6",
-    "plotly==6.8.0",
-    "contextily>=1.6",
+    "pyogrio==0.13.0",             # read directly (CNEFE GeoJSON, crime.data.cleaning)
     "pyarrow>=15",                 # result artifacts (parquet)
 ]
 
 [project.optional-dependencies]
 # acquire / clean / validate stages (scripts/01_acquire … 03_test)
 etl = ["geobr>=0.2", "pandera>=0.20", "python-calamine>=0.2"]
+# PostGIS warehouse: load_database.py, validate_data.py (with DB), crime.load_sectors / load_grid ...
+db = ["SQLAlchemy==2.0.43", "psycopg2-binary==2.9.12"]
+# interactive maps (plotly) and web basemaps (contextily) in crime.viz
+viz = ["plotly==6.8.0", "contextily>=1.6"]
 dev = ["pytest>=8", "ruff>=0.6"]
-all = ["campinas-crime-stpm[etl]"]
+all = ["campinas-crime-stpm[etl,db,viz]"]
 
 [tool.setuptools.packages.find]
 include = ["crime*", "etl*"]

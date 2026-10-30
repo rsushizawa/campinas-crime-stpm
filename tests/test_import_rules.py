@@ -96,7 +96,18 @@ def test_import_crime_is_light():
 
 
 def test_every_export_resolves():
-    code = ("import crime; missing = [n for n in crime.__all__ "
-            "if not hasattr(crime, n)]; print(','.join(missing))")
+    """Every export imports, except those needing an optional extra that is not
+    installed (``db``: sqlalchemy / psycopg2; ``viz``: plotly / contextily)."""
+    code = ("import crime\n"
+            "OPT = {'sqlalchemy', 'psycopg2', 'plotly', 'contextily'}\n"
+            "missing = []\n"
+            "for n in crime.__all__:\n"
+            "    try:\n"
+            "        getattr(crime, n)\n"
+            "    except ImportError as e:\n"
+            "        if (e.name or '').split('.')[0] not in OPT: missing.append(n)\n"
+            "    except AttributeError:\n"
+            "        missing.append(n)\n"
+            "print(','.join(missing))")
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert out.returncode == 0 and out.stdout.strip() == "", out.stdout + out.stderr

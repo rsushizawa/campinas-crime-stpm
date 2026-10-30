@@ -67,4 +67,5 @@ def test_static_figures_render(results, draw):
 
 
 def test_interactive_slice_map_builds(results):
+    pytest.importorskip("plotly")                     # the `viz` extra
     assert crime.interactive_slice_map(results["ehsa"]).data
