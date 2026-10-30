@@ -196,8 +196,10 @@ def local_bivariate_moran(
     conditional-permutation pseudo p-value; quadrant = (x high/low, lag of y
     high/low): HH / LH / LL / HL, "ns" when not significant. ``permutations=499``
     and ``fdr=True`` mirror :func:`crime.esri.local.local_moran` (499 is the
-    ArcGIS Pro "Cluster and Outlier Analysis" default; ArcGIS has no bivariate
-    tool, so this is a project choice for consistency)."""
+    ArcGIS Pro "Cluster and Outlier Analysis" default). Esri's bivariate tool,
+    "Bivariate Spatial Association (Lee's L)", computes a different statistic
+    and is not mirrored here; the 499 / BH choice is a project choice for
+    consistency with ``local_moran``."""
     from esda.moran import Moran_Local_BV
 
     gdf = _frame(dataset, x_col, y_col)

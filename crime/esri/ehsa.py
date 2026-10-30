@@ -168,10 +168,13 @@ def emerging_hotspots(
       before the hot/cold threshold. **Default True** (thousands of per-bin
       tests). Esri also documents FDR; per-slice BH here is our explicit
       testing family, not a claim of numerical equivalence to Esri.
-    ``neighbourhood`` — ``"space"`` (default, Gi* slice by slice) or
-      ``"spacetime"`` (:func:`gi_space_time` — each cell borrows strength from
+    ``neighbourhood`` — ``"space"`` (the function default, Gi* slice by slice)
+      or ``"spacetime"`` (:func:`gi_space_time` — each cell borrows strength from
       its spatial neighbours in the requested temporal window, standardised
       against the whole cube). Backward by default; symmetric is retrospective.
+      **The core pipeline uses ``"spacetime"``** (``EHSA["neighbourhood"]`` in
+      ``scripts/04_analyse/core_config.py``, the Esri-style space-time
+      neighbourhood), not this default.
     ``trend_fdr``  — also BH-correct the N per-unit Mann-Kendall trend p-values
       (one test per unit). Defaults to ``fdr``; no parity claim for this family.
       ``gdf`` carries both ``mk_p`` (raw) and ``mk_p_fdr`` (used for the label).

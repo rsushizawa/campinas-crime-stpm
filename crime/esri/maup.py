@@ -1,9 +1,13 @@
 """Support sensitivity (MAUP) — do the hot spots survive a change of support?
 
 Method
-    Collapse each finer-support EHSA result (e.g. the statistical grid) onto a
-    reference support (census tracts) by area / length-weighted overlay, then
-    measure agreement of the hot / cold / no-pattern *families*.
+    Overlay each other support's labels onto a reference support (census
+    tracts): every reference unit takes the label **family** (hotspot /
+    coldspot / no pattern) that covers the largest share of its area among
+    the overlapping units of the other support (length for line supports).
+    Then measure agreement of the families on the reference units. Works for
+    any pair of supports, coarser or finer than the reference: for a coarser
+    support this is the family of the unit covering most of the tract.
 Reference
     The modifiable areal unit problem: Openshaw, S. (1984). The Modifiable
     Areal Unit Problem. CATMOG 38. Cohen's kappa (Cohen 1960) and the Jaccard
@@ -12,10 +16,14 @@ Reference
 Steps
     1. family of every unit (:func:`crime.core.results.family`);
     2. for each reference unit, sum the intersection area (polygons) or length
-       (lines) of each family among overlapping finer units; take the argmax;
-    3. agreement metrics per finer support.
+       (lines) of each family among the overlapping units of the other
+       support; take the argmax (ties: hotspot, coldspot, no pattern order);
+       a reference unit no other unit overlaps is "no pattern" and counted in
+       ``uncovered_ref_units``;
+    3. agreement metrics per other support.
 Inputs → Outputs
-    reference ``EhsaResult`` + ``{name: EhsaResult}`` → ``(labels, agreement)``.
+    reference result + ``{name: result}`` (each with a ``gdf`` carrying
+    ``category`` + geometry) → ``(labels, agreement)``.
 """
 from __future__ import annotations
 
@@ -28,27 +36,26 @@ from crime.core.results import family, jaccard
 
 
 def support_sensitivity(ref, others: dict):
-    """Aggregate one or more finer-support EHSA results onto ``ref``'s units by
-    area/length-weighted overlay, and report family agreement against ``ref``
-    — turns a MAUP support comparison (e.g. sector vs grid) into
-    a number instead of three maps side by side. Complements
+    """Overlay one or more other-support results onto ``ref``'s units and
+    report family agreement against ``ref`` — turns a MAUP support comparison
+    into a number instead of maps side by side. Complements
     :func:`crime.stats.validation.label_agreement`, which compares two label
-    series on the *same* support (e.g. weights or trend-method sensitivity);
-    this one first collapses each finer support onto ``ref``'s geometry so
-    supports of different shape and count become comparable at all.
+    series on the *same* support; this one first carries each other support
+    onto ``ref``'s geometry so supports of different shape and count become
+    comparable.
 
-    Each finer unit's family (``"hotspot"``/``"coldspot"``/``"no pattern"``)
-    is assigned to whichever ``ref`` unit it overlaps most (by intersection
-    area for polygons, length for lines). Run ``ref``/``others`` under
-    matched inference (same ``fdr``, ``alpha``, ``freq``) first, or
-    the comparison mixes support choice with inference choice.
+    Each ``ref`` unit takes the family (``"hotspot"``/``"coldspot"``/
+    ``"no pattern"``) whose units of the other support cover the largest part
+    of it (summed intersection area for polygons, length for lines). Run
+    ``ref``/``others`` under matched inference (same ``fdr``, ``alpha``,
+    ``freq``) first, or the comparison mixes support choice with inference
+    choice.
 
     Returns ``(labels, agreement)``: ``labels`` — ref unit x {"ref", *others}
-    family DataFrame; ``agreement`` — per other, the same
-    ``label_agreement``/``hotspot_jaccard``/``patterned_jaccard`` metrics used
-    elsewhere for specification sensitivity, plus Cohen's kappa and a
-    cold-spot Jaccard (MAUP-specific — a coarser support's cold spots are
-    the ones most likely to average away entirely).
+    family DataFrame; ``agreement`` — per other, the
+    ``label_agreement``/``hotspot_jaccard``/``patterned_jaccard`` metrics,
+    Cohen's kappa, a cold-spot Jaccard (NaN when neither side has a cold
+    spot) and ``uncovered_ref_units``.
     """
     from sklearn.metrics import cohen_kappa_score
 

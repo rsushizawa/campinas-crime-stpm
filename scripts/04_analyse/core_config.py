@@ -44,7 +44,7 @@ STL = {"period": 12, "robust": True}    # project choice: monthly series, annual
 TIME_UNITS = {"quarter": "QE", "month": "ME"}   # project choice: pandas offset aliases
 PRIMARY_TIME_UNIT = "quarter"                   # project choice
 EHSA = {
-    "neighbourhood": "spacetime",     # Esri-style space-time neighbourhood
+    "neighbourhood": "spacetime",     # Esri-style space-time neighbourhood (emerging_hotspots' own default is "space")
     "time_step": 1,                   # Esri default "Neighborhood Time Step" = 1
     "temporal_direction": "backward",
     "trend_method": "hamed_rao",      # project choice (Esri uses Mann-Kendall; see METHODS.md)
