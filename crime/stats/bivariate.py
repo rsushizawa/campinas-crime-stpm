@@ -45,6 +45,7 @@ import pandas as pd
 
 from crime.core.metadata import ResultMeta, dataset_meta_of
 from crime.esri.inference import benjamini_hochberg
+from crime.esri.local import island_mask
 from crime.esri.weights import resolve_weights, weights_tag
 
 __all__ = ["BivariateMoranResult", "LocalBivariateResult", "bivariate_moran",
@@ -205,9 +206,10 @@ def local_bivariate_moran(
           f"{' + FDR' if fdr else ''}")
     lbv = Moran_Local_BV(gdf[x_col].astype(float).values, gdf[y_col].astype(float).values, w,
                          permutations=permutations, seed=seed)
-    gdf["lisa_bv_I"] = lbv.Is
+    isl = island_mask(w)                       # no neighbours: "no data", outside the BH family
+    gdf["lisa_bv_I"] = np.where(isl, np.nan, lbv.Is)
     gdf["quadrant"] = [_QUAD[q] for q in lbv.q]
-    gdf["p_value"] = lbv.p_sim
+    gdf["p_value"] = np.where(isl, np.nan, lbv.p_sim)
     res = LocalBivariateResult(gdf=gdf, x_col=x_col, y_col=y_col, meta=ResultMeta(
         method="local bivariate Moran's I", reference="Anselin et al. 2002; PySAL esda.Moran_Local_BV",
         params=dict(x_col=x_col, y_col=y_col, weights=weights_tag(weights),

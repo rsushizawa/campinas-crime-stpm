@@ -167,6 +167,60 @@ def test_lisa_seed_reproduces():
     np.testing.assert_array_equal(a.gdf["p_value"], b.gdf["p_value"])
 
 
+def _with_island(values) -> gpd.GeoDataFrame:
+    """A 10 x 10 lattice plus one detached unit ("island", no contiguity neighbour)."""
+    gdf = _lattice(10, values)
+    isl = gpd.GeoDataFrame({"unit_id": ["island"], "crime_count": [0.0]},
+                           geometry=[box(50, 50, 51, 51)], crs=gdf.crs)
+    return pd.concat([gdf, isl], ignore_index=True)
+
+
+def test_lisa_island_is_no_data_and_outside_bh():
+    gdf = _with_island(_two_halves())
+    w = _quiet(spatial_weights, gdf, kind="rook")
+    assert len(w.islands) == 1
+    res = _quiet(local.local_moran, Dataset(gdf, "sector"), weights=w)
+    row = res.gdf.set_index("unit_id").loc["island"]
+    assert row["label"] == "no data"
+    assert np.isnan(row["lisa_I"]) and np.isnan(row["p_value"]) and np.isnan(row["p_adjusted"])
+    # BH family = the 100 lattice units only (n = 100, not 101)
+    from crime.esri.inference import benjamini_hochberg
+    p = res.gdf["p_value"].to_numpy()[:100]
+    np.testing.assert_allclose(res.gdf["p_adjusted"].to_numpy()[:100], benjamini_hochberg(p))
+    # Gi* agrees: the island has no z
+    gi = _quiet(local.getis_ord_gi, Dataset(gdf, "sector"), weights=w)
+    assert gi.gdf.set_index("unit_id").loc["island", "label"] == "no data"
+
+
+def test_space_time_lisa_island_is_no_data():
+    gdf = _with_island(_two_halves())
+    T = 4
+    matrix = pd.DataFrame(np.repeat(gdf["crime_count"].to_numpy()[:, None], T, axis=1), index=gdf["unit_id"],
+                          columns=pd.date_range("2022-01-31", periods=T, freq="ME"))
+    res = _quiet(stlisa.space_time_lisa, Dataset(gdf, "sector"), weights="rook", matrix=matrix)
+    assert (res.labels.loc["island"] == "no data").all()
+    out = res.gdf.set_index("unit_id")
+    assert out.loc["island", "modal_label"] == "no data" and out.loc["island", "n_ll"] == 0
+    assert "no data" not in set(res.labels.drop(index="island").stack())
+
+
+def test_space_time_lisa_modal_tie_break_is_stated_order():
+    """A unit HH in one slice and LL in another (a tie) takes HH, the first of
+    HH, LL, HL, LH — not the alphabetical first."""
+    gdf = _lattice(10, _two_halves())
+    hi = _two_halves()
+    lo = 10.0 - hi                                     # mirror: the high half becomes low
+    matrix = pd.DataFrame(np.c_[hi, lo], index=gdf["unit_id"],
+                          columns=pd.date_range("2022-01-31", periods=2, freq="ME"))
+    res = _quiet(stlisa.space_time_lisa, Dataset(gdf, "sector"), weights="queen", matrix=matrix)
+    lab = res.labels
+    tied = lab.index[(lab.iloc[:, 0] == "HH") & (lab.iloc[:, 1] == "LL")]
+    assert len(tied)
+    assert (res.gdf.set_index("unit_id").loc[tied, "modal_label"] == "HH").all()
+    hl_lh = lab.index[(lab.iloc[:, 0] == "HL") & (lab.iloc[:, 1] == "LH")]
+    assert (res.gdf.set_index("unit_id").loc[hl_lh, "modal_label"] == "HL").all()
+
+
 # --------------------------------------------------------------------------- #
 #  Global Moran's I
 # --------------------------------------------------------------------------- #

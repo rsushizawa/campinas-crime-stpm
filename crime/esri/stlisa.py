@@ -11,8 +11,12 @@ Reference
     space-time neighbourhood instead).
 Steps
     1. cube (or a supplied matrix) as ``unit x period``; 2. for each slice
-       with variance: Moran_Local + FDR → HH/LH/LL/HL or "ns"; 3. per unit:
-       ``n_hh``, ``n_ll``, ``modal_label``.
+       with variance: Moran_Local + FDR → HH/LH/LL/HL or "ns" (units with no
+       neighbours — ``w.islands`` — are "no data" in every slice and are left
+       out of the BH family); 3. per unit: ``n_hh``, ``n_ll``, ``modal_label``
+       (the most frequent significant quadrant; ties broken by the fixed
+       order HH, LL, HL, LH — clusters before outliers, a project choice;
+       "ns" if never significant, "no data" for islands).
 Inputs → Outputs
     Dataset (``events=True``) → :class:`SpaceTimeLisaResult`
     (``labels`` unit x period, ``gdf`` + per-unit summary).
@@ -28,8 +32,11 @@ import pandas as pd
 from crime.core.metadata import ResultMeta, dataset_meta_of
 from crime.esri.cube import space_time_cube
 from crime.esri.inference import benjamini_hochberg
-from crime.esri.local import _QUAD
+from crime.esri.local import _QUAD, island_mask
 from crime.esri.weights import resolve_weights, weights_tag
+
+#: tie-break order of the modal label: clusters (HH, LL) before outliers (HL, LH)
+_MODAL_ORDER = ("HH", "LL", "HL", "LH")
 
 
 @dataclass
@@ -70,25 +77,27 @@ def space_time_lisa(
 
     print(f"Space-time LISA on {wide.shape[1]} slices x {len(gdf)} units"
           f"{' + FDR' if fdr else ''}")
+    isl = island_mask(w)
     labels = {}
     for col in wide.columns:
         y = wide[col].values.astype(float)
         if y.sum() == 0 or y.std() == 0:
-            labels[col] = np.full(len(y), "ns")
+            labels[col] = np.where(isl, "no data", "ns")
             continue
         lisa = Moran_Local(y, w, permutations=permutations, seed=seed)
-        p = benjamini_hochberg(lisa.p_sim) if fdr else lisa.p_sim
-        sig = p < alpha
-        labels[col] = np.where(sig, [_QUAD[q] for q in lisa.q], "ns")
+        p_raw = np.where(isl, np.nan, lisa.p_sim)          # islands: no test, outside the BH family
+        p = benjamini_hochberg(p_raw) if fdr else p_raw
+        sig = p < alpha                                     # NaN -> False
+        labels[col] = np.where(isl, "no data", np.where(sig, [_QUAD[q] for q in lisa.q], "ns"))
 
     labels = pd.DataFrame(labels, index=wide.index)
-    sig_labels = labels.mask(labels.eq("ns"))
     out = dataset.gdf.copy()
     out["n_hh"] = (labels == "HH").sum(axis=1).values
     out["n_ll"] = (labels == "LL").sum(axis=1).values
-    # mode() of an all-NaN frame (no significant slice anywhere) has no rows: reindex both axes
-    modes = sig_labels.mode(axis=1).reindex(index=labels.index, columns=[0])
-    out["modal_label"] = modes[0].fillna("ns").values
+    # modal significant quadrant; ties -> first in _MODAL_ORDER (stated rule, not alphabetical)
+    counts = pd.DataFrame({q: (labels == q).sum(axis=1) for q in _MODAL_ORDER})
+    modal = counts.idxmax(axis=1).where(counts.max(axis=1) > 0, "ns")
+    out["modal_label"] = np.where(isl, "no data", modal.to_numpy())
     return SpaceTimeLisaResult(gdf=out, labels=labels, alpha=alpha, meta=ResultMeta(
         method="Space-time LISA (per-slice Local Moran's I)", reference="Anselin 1995",
         params=dict(freq=freq, weights=weights_tag(weights), permutations=permutations,

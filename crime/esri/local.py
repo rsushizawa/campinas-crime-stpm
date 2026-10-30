@@ -46,6 +46,17 @@ from crime.esri.weights import resolve_weights, weights_tag
 _QUAD = {1: "HH", 2: "LH", 3: "LL", 4: "HL"}
 
 
+def island_mask(w) -> np.ndarray:
+    """Boolean array (in ``w.id_order``, i.e. the row order of the frame the
+    weights were built on) marking units with no neighbours (``w.islands``).
+    A local statistic is undefined for them: an island's spatial lag is 0, so
+    esda returns ``I = 0`` with a meaningless permutation p-value."""
+    pos = {u: i for i, u in enumerate(w.id_order)}
+    m = np.zeros(w.n, dtype=bool)
+    m[[pos[u] for u in w.islands]] = True
+    return m
+
+
 # --------------------------------------------------------------------------- #
 #  Local Moran's I (LISA)
 # --------------------------------------------------------------------------- #
@@ -95,7 +106,8 @@ def local_moran(
     and Outlier Analysis" default; ``seed`` fixes the permutation draws.
     ``fdr=True`` (default) labels on Benjamini-Hochberg adjusted p-values
     across units — the right call when scanning many units. ``fdr=False``
-    uses raw p."""
+    uses raw p. Units with no neighbours (``w.islands``) get NaN ``lisa_I`` /
+    ``p_value``, the label "no data", and are left out of the BH family."""
     from esda.moran import Moran_Local
 
     gdf = dataset.metric().dropna(subset=[value_col]).reset_index(drop=True)
@@ -104,9 +116,12 @@ def local_moran(
     lisa = Moran_Local(
         gdf[value_col].astype(float).values, w, permutations=permutations, seed=seed
     )
-    gdf["lisa_I"] = lisa.Is
+    # islands (no neighbours) have no local statistic: NaN I and p, so they are
+    # labelled "no data" and excluded from the BH family (NaN p is skipped).
+    isl = island_mask(w)
+    gdf["lisa_I"] = np.where(isl, np.nan, lisa.Is)
     gdf["quadrant"] = [_QUAD[q] for q in lisa.q]
-    gdf["p_value"] = lisa.p_sim
+    gdf["p_value"] = np.where(isl, np.nan, lisa.p_sim)
     res = LisaResult(gdf=gdf, value_col=value_col, meta=ResultMeta(
         method="Local Moran's I (LISA)", reference="Anselin 1995; PySAL esda.Moran_Local",
         params=dict(value_col=value_col, weights=weights_tag(weights), permutations=permutations,

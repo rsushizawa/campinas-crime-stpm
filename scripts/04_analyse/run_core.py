@@ -259,7 +259,7 @@ def step_where(ctx: Context, t: dict) -> None:
                                  gi_hot=int(gl.get("hotspot", 0)), gi_cold=int(gl.get("coldspot", 0)),
                                  gi_ns=int(gl.get("ns", 0)), gi_no_data=int(gl.get("no data", 0)),
                                  **{f"lisa_{q}": int(ll.get(q, 0)) for q in QUADS},
-                                 lisa_ns=int(ll.get("ns", 0))))
+                                 lisa_ns=int(ll.get("ns", 0)), lisa_no_data=int(ll.get("no data", 0))))
                 per_unit.append(pd.DataFrame(dict(
                     group=g, weights=k, unit_id=ds.gdf["unit_id"].to_numpy(),
                     crime_count=ds.gdf["crime_count"].to_numpy(),
@@ -300,6 +300,7 @@ def step_change(ctx: Context, t: dict) -> None:
                                      n_events=int(ds.gdf["crime_count"].sum()),
                                      **{c: int(cat.get(c, 0)) for c in EHSA_CATEGORIES},
                                      **{f"stlisa_{q}": int(sl.get(q, 0)) for q in (*QUADS, "ns")},
+                                     stlisa_no_data=int(sl.get("no data", 0)),
                                      stlisa_units_ever_HH=int((st.gdf["n_hh"] > 0).sum()),
                                      stlisa_units_ever_LL=int((st.gdf["n_ll"] > 0).sum())))
                     per_unit.append(pd.DataFrame(dict(
