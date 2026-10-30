@@ -5,8 +5,13 @@ live PostGIS DB while the cube becomes a first-class object. The baseline hashes
 in ``tests/fixtures/cube_baseline.json`` were captured on the pre-refactor code
 (property-crime census-tract cube, 2022-2025).
 
+The EHSA *category* hashes are not compared: the baseline used a one-sided
+analytic Gi* p-value, while EHSA now uses the two-sided p (the ArcGIS Pro
+convention), which changes the hot/cold masks. The cube, the Gi* z-matrix and
+the Mann-Kendall z (which depend only on z) are still gated.
+
 Run directly (``python tests/test_cube_regression.py``) or under pytest.
-Needs the database up (``docker compose -f database/docker-compose.yml up -d``).
+Needs the database up (``make db``); skipped when it is unreachable.
 """
 from __future__ import annotations
 
@@ -19,10 +24,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 import crime
 
 FIXTURE = Path(__file__).parent / "fixtures" / "cube_baseline.json"
+#: keys that depend on the Gi* p-value convention (see module docstring)
+P_DEPENDENT = ("_category",)
 
 
 def _hash(obj) -> str:
@@ -60,8 +68,10 @@ def _snapshot() -> dict:
     return snap
 
 
+@pytest.mark.db
 def test_cube_regression() -> None:
-    baseline = json.loads(FIXTURE.read_text())
+    baseline = {k: v for k, v in json.loads(FIXTURE.read_text()).items()
+                if not any(t in k for t in P_DEPENDENT)}
     with contextlib.redirect_stdout(io.StringIO()):
         got = _snapshot()
     diffs = {k: (baseline.get(k), got.get(k)) for k in baseline if baseline.get(k) != got.get(k)}

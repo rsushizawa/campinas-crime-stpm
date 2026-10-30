@@ -2,7 +2,8 @@
 
 Space-time cube -> Gi* / EHSA / space-time LISA / global Moran, on a small
 low-volume slice, so signature or wiring breakage is caught in ~1 min. Not a
-numeric check — that is ``test_cube_regression.py``. Needs the PostGIS DB up.
+numeric check — that is ``test_cube_regression.py``. Needs the PostGIS DB up
+(``make db``); skipped when it is unreachable.
 
     python tests/test_pipeline_smoke.py        # or: pytest tests/test_pipeline_smoke.py
 """
@@ -12,9 +13,12 @@ import contextlib
 import io
 import sys
 
+import pytest
+
 import crime
 
 
+@pytest.mark.db
 def test_pipeline_smoke() -> None:
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
@@ -33,9 +37,10 @@ def test_pipeline_smoke() -> None:
         # 2 — static ESDA
         mi = crime.global_moran(ds, permutations=999)
         assert -1.0 <= mi.I <= 1.0
-        gi = crime.getis_ord_gi(ds, permutations=999, fdr=True)
+        assert 0.0 <= mi.p_norm <= 1.0
+        gi = crime.getis_ord_gi(ds, fdr=True)
         assert set(gi.gdf["label"]).issubset({"hotspot", "coldspot", "ns"})
-        li = crime.local_moran(ds, permutations=999, fdr=True)
+        li = crime.local_moran(ds, fdr=True)
         assert "label" in li.gdf
 
         # 3 — space-time stack
@@ -45,10 +50,8 @@ def test_pipeline_smoke() -> None:
         assert mk2.z_matrix.shape[1] == cube.shape[1]
         mkst = crime.emerging_hotspots(ds, freq="YE", neighbourhood="spacetime", time_step=1)
         assert mkst.z_matrix.shape == mk.z_matrix.shape
-        mkcp = crime.emerging_hotspots(ds, freq="YE", permutations=99, fdr=False)
-        assert "category" in mkcp.gdf
         ds_grid = crime.load_grid(years=(2022, 2025), crime_slug="furto_veiculo", events=True)
-        mk_grid = crime.emerging_hotspots(ds_grid, freq="YE", permutations=99, fdr=False)
+        mk_grid = crime.emerging_hotspots(ds_grid, freq="YE", fdr=False)
         labels, agreement = crime.support_sensitivity(mk, {"grid": mk_grid})
         assert "grid" in agreement.index and set(labels["ref"]) <= {"hotspot", "coldspot", "no pattern"}
         assert "label_agreement" in agreement and "kappa" in agreement
@@ -73,9 +76,7 @@ def test_pipeline_smoke() -> None:
         matplotlib.use("Agg")
         spec = crime.DatasetSpec().years(2022, 2025).crime(slug="furto_veiculo").with_events()
         assert len(spec.scope("sector").load().gdf) == len(ds.gdf)
-        for fn in (lambda: crime.emergence_timeline(mk2),
-                   lambda: crime.emergence_curve(mk2),
-                   lambda: crime.persistence_map(mk2, ds),
+        for fn in (lambda: crime.persistence_map(mk2, ds),
                    lambda: crime.trend_map(cube, ds),
                    lambda: crime.history_map(cube, ds),
                    lambda: crime.ehsa_map(mk2, ds),
@@ -83,7 +84,7 @@ def test_pipeline_smoke() -> None:
             # trend_map also returns its reusable slope frame.
             f = fn()[0]
             matplotlib.pyplot.close(f)
-        assert crime.ehsa_transition_sankey(mk2).data
+        assert crime.interactive_slice_map(mk).data
 
         # 5 — weights sensitivity + artifact round-trip
         import shutil
@@ -102,7 +103,7 @@ def test_pipeline_smoke() -> None:
             shutil.rmtree(tmp, ignore_errors=True)
 
         prov = crime.provenance(extra={"stage": "smoke"})
-        assert prov["ic_crime_version"] and "numpy" in prov["libraries"]
+        assert prov["package_version"] and "numpy" in prov["libraries"]
 
 
 if __name__ == "__main__":

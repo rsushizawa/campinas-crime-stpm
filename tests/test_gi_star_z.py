@@ -1,7 +1,8 @@
 """Known-answer checks for the general-weights Gi* z (Ord & Getis 1995).
 
-esda 2.6.0's ``G_Local.Zs`` uses the binary-weights variance; issue #17 and
-paper/SPACETIME_DRIFT.md §4 derive the general form checked here.
+esda 2.6.0's ``G_Local.Zs`` uses the binary-weights variance; the general
+(Ord & Getis 1995) form is checked here. ``gi_star_z``'s p is two-sided, i.e.
+twice esda's one-sided ``p_norm``.
 """
 import warnings
 
@@ -29,7 +30,7 @@ def test_equals_esda_for_binary_weights():
     gi = _gi(x, w, "B")
     z, p = gi_star_z(x, w, transform="B")
     np.testing.assert_allclose(z, gi.Zs, rtol=1e-12)
-    np.testing.assert_allclose(p, gi.p_norm, rtol=1e-12)
+    np.testing.assert_allclose(p, 2 * gi.p_norm, rtol=1e-12)
 
 
 def test_row_standardised_matches_hand_formula():
@@ -79,20 +80,16 @@ def test_gi_space_time_uses_general_z():
     wide = pd.DataFrame(RNG.poisson(2.0, (25, 6)).astype(float))
     z, p, hot, cold = gi_space_time(wide, w, time_step=1)
     x = wide.to_numpy().reshape(-1, order="F")
-    gi = _gi(x, WSP(space_time_weights(w, 6, time_step=1)).to_W(), "R")
     np.testing.assert_allclose(z, gi_star_z(x, WSP(space_time_weights(w, 6, time_step=1)).to_W())[0]
                                .reshape(6, 25).T, rtol=1e-12)
 
 
-def test_z_does_not_depend_on_permutations():
-    # esda zeroes gi.w's diagonal while permuting; z must not change with it
+def test_sign_matches_esda():
+    # same centre as esda's Zs, different scale
     w = lat2W(5, 5, rook=False)
     w.transform = "R"
     wide = pd.DataFrame(RNG.poisson(0.7, (25, 6)).astype(float))
-    z0 = gi_space_time(wide, w, time_step=1, permutations=0)[0]
-    z1 = gi_space_time(wide, w, time_step=1, permutations=99)[0]
-    np.testing.assert_allclose(z0, z1, rtol=1e-12)
-    # and the sign always matches esda's (same centre, different scale)
+    z0 = gi_space_time(wide, w, time_step=1)[0]
     x = wide.to_numpy().reshape(-1, order="F")
     gi = _gi(x, WSP(space_time_weights(w, 6, time_step=1)).to_W(), "R")
     assert np.array_equal(np.sign(z0.reshape(-1, order="F")), np.sign(gi.Zs))

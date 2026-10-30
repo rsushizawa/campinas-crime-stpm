@@ -2,9 +2,11 @@
 
 Layers (a module may import only from its own layer or layers to its left):
 
-    core  <-  data  <-  esri / stats  <-  geoshapley  <-  viz
+    core  <-  data  <-  esri / stats  <-  viz
 
-esri and stats are peers. Checked statically with ``ast`` (covers lazy,
+esri and stats are peers. The removed arms (GeoShapley / prediction, NKDE and
+the street network, transitions, simulation, imagery, voxel) must not come
+back as imports. Checked statically with ``ast`` (covers lazy,
 function-level imports too), so no import-linter dependency is needed.
 """
 from __future__ import annotations
@@ -18,9 +20,16 @@ import pytest
 
 PKG = Path(__file__).resolve().parents[1] / "crime"
 
-RANK = {"core": 0, "data": 1, "esri": 2, "stats": 2, "geoshapley": 3, "viz": 4}
+RANK = {"core": 0, "data": 1, "esri": 2, "stats": 2, "viz": 3}
 #: explicit, documented exceptions: (importer layer, imported layer)
 ALLOWED = {("esri", "stats"), ("stats", "esri")}
+
+
+#: modules / third-party packages of the removed arms
+REMOVED = ("crime.geoshapley", "crime.esri.nkde", "crime.esri.permutation", "crime.esri.transitions",
+           "crime.data.osm", "crime.data.segments", "crime.stats.simulation", "crime.viz.voxel",
+           "crime.viz.imagery", "osmnx", "networkx", "ee", "geemap", "xgboost", "lightgbm",
+           "catboost", "shap", "geoshapley", "mgwr")
 
 
 def _layer(module: str) -> str | None:
@@ -51,6 +60,9 @@ def test_layering(path, module):
         return
     bad = []
     for line, imported in _imports(path):
+        if any(imported == r or imported.startswith(r + ".") for r in REMOVED):
+            bad.append(f"{line}: imports removed module {imported}")
+            continue
         if imported == "crime":
             bad.append(f"{line}: 'import crime' (whole facade) inside the library")
             continue
@@ -62,6 +74,11 @@ def test_layering(path, module):
     assert not bad, f"{module} breaks the layer rule:\n" + "\n".join(bad)
 
 
+def test_subpackages_are_exactly_the_layers():
+    subpackages = {p.parent.name for p in PKG.glob("*/__init__.py")}
+    assert subpackages == set(RANK), f"unexpected subpackages: {subpackages ^ set(RANK)}"
+
+
 def test_no_flat_modules_left():
     flat = sorted(p.name for p in PKG.glob("*.py") if p.name != "__init__.py")
     assert not flat, f"modules outside a subpackage: {flat}"
@@ -69,7 +86,7 @@ def test_no_flat_modules_left():
 
 def test_import_crime_is_light():
     code = ("import sys, crime; "
-            "heavy = [m for m in ('matplotlib', 'sklearn', 'osmnx', 'plotly', 'ee', 'lightgbm', 'shap') "
+            "heavy = [m for m in ('matplotlib', 'sklearn', 'plotly', 'esda', 'statsmodels') "
             "if m in sys.modules]; print(','.join(heavy))")
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
     assert out.stdout.strip() == "", f"import crime pulled in: {out.stdout.strip()}"

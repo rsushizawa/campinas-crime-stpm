@@ -14,12 +14,7 @@ from crime.esri.cube import space_time_cube
 from crime.esri.ehsa import classify_pattern, gi_time_series
 from crime.esri.trend import mann_kendall
 from crime.esri.weights import space_time_weights
-from crime.stats.validation import (
-    evaluate_rankings,
-    label_agreement,
-    paired_forecast_differences,
-    select_budget,
-)
+from crime.stats.validation import label_agreement
 
 
 def test_mk_tie_variance_against_exhaustive_null():
@@ -94,23 +89,7 @@ def test_constant_gi_is_not_significant():
     assert not h.any() and not c.any() and np.all(p==1)
 
 
-def test_distance_budget_and_outcome_independence():
-    scores=np.array([10,9,8,7.]); lengths=np.array([8,1,1,2.])
-    sel=select_budget(scores,lengths,.25,budget_type='length')
-    assert lengths[sel].sum()<=3
-    assert set(sel)=={1,2}
-    rows=evaluate_rankings({'a':scores}, [1,2,3,4], lengths, origin='x',budgets=[.25])
-    assert rows[1]['capture']==.5
-
-
-def test_paired_intervals_and_majority_labels():
-    rows=[]
-    for month in range(12):
-        for name,cap in [('trailing-3mo',.2),('model',.3)]:
-            rows.append(dict(origin=month,ranker=name,capture=cap,budget_type='length',k=.05))
-    out=paired_forecast_differences(pd.DataFrame(rows))
-    assert out.iloc[0].delta_mean==pytest.approx(.1)
-    assert out.iloc[0].ci_lo==pytest.approx(.1)
+def test_majority_labels_cannot_hide_hotspot_disagreement():
     a=['no pattern']*98+['new hotspot','no pattern']; b=['no pattern']*99+['new hotspot']
     result=label_agreement(a,b)
     assert result['label_agreement']==.98 and result['hotspot_jaccard']==0
