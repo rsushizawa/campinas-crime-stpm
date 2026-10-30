@@ -9,6 +9,21 @@ Reference
 ESRI tool mirrored
     "Time Series Clustering" (value / profile / Fourier characteristics of
     interest; pseudo-F rule for the number of clusters).
+    Shared with ArcGIS: k swept over 2..10 when not given, 10 random starts per
+    k, the k with the largest pseudo-F kept; Value = k-means on the raw series
+    (Euclidean). Differences (ArcGIS Pro "How Time Series Clustering works"):
+    * Profile (Correlation): ArcGIS runs k-medoids (PAM; CLARA above 10,000
+      locations) on the distance 1 − r. Here k-means on z-scored series —
+      squared Euclidean between z-scored series is 2T(1 − r), so the
+      dissimilarity is the same up to scale but the centres are means, not
+      medoids.
+    * Profile (Fourier): ArcGIS clusters on the weights of (almost) all
+      Fourier basis functions, optionally ignoring start time / magnitude.
+      Here k-means on |DFT| of harmonics 1..``n_harmonics`` (the mean is
+      dropped, phase always ignored, magnitude kept).
+    * Pseudo-F is scikit-learn's Calinski–Harabasz on the feature space (ArcGIS
+      uses medoid-based squared errors for the correlation option); no
+      ``CENTER_REP`` medoid field.
 Steps
     1. features: raw values, z-scored profile, or |DFT| of the first
        ``n_harmonics`` harmonics; 2. drop units below ``min_total``;

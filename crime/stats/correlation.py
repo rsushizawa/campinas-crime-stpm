@@ -58,7 +58,11 @@ class CorrelationResult:
 def feature_correlation(
     dataset, *, cols: list[str] | None = None, method: str = "spearman", target: str = "crime_count"
 ) -> CorrelationResult:
-    """Correlation of numeric urban-feature columns with ``target``."""
+    """Correlation of numeric columns with ``target``. ``cols=None`` takes every
+    numeric column except the unit id (any unit kind: only ``dataset.gdf`` is
+    read). Note the default is *not* ``DEFAULT_FEATURES``; and ``income_mean``,
+    where present, is a COUNT of residents earning <= 1/2 minimum wage, not an
+    income (see ``database/enrich.sql``)."""
     years = getattr(dataset, "years", None)
     if years and tuple(years) != (DEMOGRAPHIC_YEAR, DEMOGRAPHIC_YEAR):
         warnings.warn(
@@ -67,7 +71,8 @@ def feature_correlation(
             f"{DEMOGRAPHIC_YEAR})) for a temporally valid comparison.",
             stacklevel=2,
         )
-    cols = cols or dataset.gdf.select_dtypes("number").columns.tolist()
+    id_col = getattr(dataset, "id_col", "unit_id")
+    cols = list(cols) if cols else [c for c in dataset.gdf.select_dtypes("number").columns if c != id_col]
     if target not in cols:
         cols.append(target)
     matrix = dataset.gdf[cols].corr(method=method)
