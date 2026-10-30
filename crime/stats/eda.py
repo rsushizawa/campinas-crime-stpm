@@ -14,6 +14,8 @@ Inputs → Outputs
     from crime import descriptive_stats, temporal_trends
     stats = descriptive_stats(ds)
     trends = temporal_trends(ds, freq="ME")     # needs events=True
+    from crime.stats.eda import stl_decompose
+    stl_decompose(trends.by_period, period=12)  # observed/trend/seasonal/resid
 """
 from dataclasses import dataclass, field
 
@@ -104,17 +106,41 @@ def temporal_trends(dataset, *, freq: str = "ME") -> TrendResult:
                            params=dict(freq=freq), dataset=dataset_meta_of(dataset)))
 
 
+def stl_decompose(series: pd.Series, *, period: int = 12, robust: bool = True) -> pd.DataFrame:
+    """STL decomposition (Cleveland et al. 1990) of a regularly spaced series —
+    statsmodels ``STL(series, period=period, robust=robust)`` with its default
+    loess windows. ``robust=True`` down-weights outlying months in the loess
+    fits. Returns columns ``observed / trend / seasonal / resid`` on the
+    series' index (``observed = trend + seasonal + resid``). Needs at least two
+    full cycles; NaNs are not allowed (fill them first)."""
+    from statsmodels.tsa.seasonal import STL
+
+    s = pd.Series(series, dtype=float)
+    if len(s) < 2 * period:
+        raise ValueError(f"STL needs >= 2 cycles ({2 * period} points), got {len(s)}")
+    if s.isna().any():
+        raise ValueError("series has NaNs — fill them before decomposing")
+    res = STL(s.to_numpy(), period=period, robust=robust).fit()
+    return pd.DataFrame({"observed": s.to_numpy(), "trend": res.trend, "seasonal": res.seasonal,
+                         "resid": res.resid}, index=s.index)
+
+
 def _stl(series: pd.Series, freq: str) -> dict | None:
     """STL seasonal-trend decomposition of the total series, when there are at
     least two full seasonal cycles (12 for monthly, 4 for quarterly)."""
-    period = {"ME": 12, "M": 12, "QE": 4, "Q": 4, "W": 52}.get(freq.rstrip("SE") or "M")
-    if period is None or len(series) < 2 * period:
+    key = freq.rstrip("SE") or "M"
+    period = {"M": 12, "Q": 4, "W": 52}.get(key)
+    if period is None or series.empty:
+        return None
+    # by_period is indexed by period *start* and omits periods with no events:
+    # those had zero events, so reindex to the full range with 0 (interpolating
+    # would invent events in an empty month).
+    full = pd.date_range(series.index.min(), series.index.max(),
+                         freq={"M": "MS", "Q": "QS", "W": "W-MON"}[key])
+    s = series.reindex(full, fill_value=0)
+    if len(s) < 2 * period:
         return None
     try:
-        from statsmodels.tsa.seasonal import STL
-
-        s = series.asfreq(pd.infer_freq(series.index) or freq).interpolate()
-        res = STL(s, period=period, robust=True).fit()
-        return {"observed": s, "trend": res.trend, "seasonal": res.seasonal, "resid": res.resid}
+        return stl_decompose(s, period=period, robust=True).to_dict("series")
     except Exception:  # noqa: BLE001 — decomposition is a nice-to-have
         return None
