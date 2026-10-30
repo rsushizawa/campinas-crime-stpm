@@ -1,3 +1,38 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:eaf37ec3fd255d1947ea84df4aaeb9868f04fb0e4f477f041e58fdc58109f591
-size 1439
+{
+  "cube_ME_panel": "7ba059cb497f0413f6b2230a29b0c0d377fa93b545a3b5487ec43424c7b696d9",
+  "cube_ME_wide": "8fdeb2815d5194d4ace0e7926df4853b242eb6e75482ebd8f881d4619b58b317",
+  "cube_ME_wide_shape": [
+    2592,
+    48
+  ],
+  "cube_ME_wide_sum": 90436.0,
+  "cube_YE_panel": "c7320d74faae0b0f94918b149bc3d0bf80df051caa12f3bb75b27f847602014a",
+  "cube_YE_wide": "9c94d995732fd3570be0662fdcdc2a2acfe1d5b0a840c1685209ada3c896d33d",
+  "cube_YE_wide_shape": [
+    2592,
+    4
+  ],
+  "cube_YE_wide_sum": 90436.0,
+  "ehsa_ME_category": "3a639fe0c60c7fba385017b54f9abd75a223f1e9b62cbe3657761037dc463b96",
+  "ehsa_ME_category_counts": {
+    "diminishing hotspot": 11,
+    "historical hotspot": 4,
+    "intensifying hotspot": 1,
+    "new hotspot": 16,
+    "no pattern": 2483,
+    "persistent hotspot": 32,
+    "sporadic hotspot": 45
+  },
+  "ehsa_ME_mk_z": "4eb1d3006a84fd4cfe1e6f6f17d7ebd55f6fe29bbd9da338b252563068a045cc",
+  "ehsa_ME_zmatrix": "ec7d735512d4d3427dbdb2d758f1c8c47d475f9cc15b7400814020c756b1d91e",
+  "ehsa_YE_category": "de773abf626d05b54dc4ed9c2b25c5a382eb69dcbe4aeaeb1f74499435322042",
+  "ehsa_YE_category_counts": {
+    "consecutive hotspot": 39,
+    "new hotspot": 21,
+    "no pattern": 2399,
+    "persistent hotspot": 121,
+    "sporadic hotspot": 12
+  },
+  "ehsa_YE_mk_z": "e2a420b2fd41e50634e2b6ccc828790d0e2b9b533217864090c67606bd0c8ac4",
+  "ehsa_YE_zmatrix": "743e1f50e4e60c1f6ae9bf69ad2a726868807ff1584bbe821846dcc4a58d2936"
+}
