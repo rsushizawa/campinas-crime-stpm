@@ -1,28 +1,20 @@
-/memory
-/catboost_info
 /cache
 .venv
 .claude
 .env
+.vibe-wise/
 
 **/__pycache__
 *.py[cod]
 *.egg-info/
 build/
 dist/
+.pytest_cache/
+.ruff_cache/
 
-# Generated outputs (Alexander 2023 layout) — rebuilt by `make all`.
-# outputs/models/ holds tracked fitted models of the scrapped modelling arm.
+# Generated outputs (Alexander 2023 layout) — rebuilt by the Makefile stages.
 /outputs/*
-!/outputs/models/
-*.bak
-!/inputs/data/crimes_campinas_2022_2024.csv.bak
 
-# LaTeX build artifacts
-paper/main.aux
-paper/main.log
-paper/main.fdb_latexmk
-paper/main.fls
-paper/main.blg
-paper/main.bbl
-paper/main.out
+*.bak
+# The 2022-2024 SSP-SP raw extract is the only surviving copy (Git LFS, see .gitattributes).
+!/inputs/data/crimes_campinas_2022_2024.csv.bak

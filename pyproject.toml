@@ -3,10 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ic-crime"
+name = "campinas-crime-stpm"
 dynamic = ["version"]
-description = "Classical spatio-temporal crime analysis (ESRI Space-Time Pattern Mining) + GeoShapley explanation for Campinas"
-readme = "README.md"
+description = "Classical space-time pattern mining (Esri-style) of police-recorded crime in Campinas, SP"
 requires-python = ">=3.11"
 dependencies = [
     "geopandas==1.1.3",
@@ -20,29 +19,17 @@ dependencies = [
     "statsmodels==0.15.0",
     "SQLAlchemy==2.0.43",
     "psycopg2-binary==2.9.12",
-    "osmnx==2.0.5",
-    "networkx==3.6.1",
     "matplotlib==3.10.6",
-    "seaborn==0.13.2",
     "plotly==6.8.0",
     "contextily>=1.6",
+    "pyarrow>=15",                 # result artifacts (parquet)
 ]
 
 [project.optional-dependencies]
 # acquire / clean / validate stages (scripts/01_acquire … 03_test)
-etl = ["geobr>=0.2", "pyarrow>=15", "pandera>=0.20", "python-calamine>=0.2"]
-# raster zonal stats + temporal covariates for a future data layer
-raster = ["rasterio>=1.3", "exactextract>=0.2", "workalendar>=17"]
-# region_history_map — draw/select a region, compare Sentinel-2 composites across time
-imagery = ["earthengine-api>=1.0", "geemap>=0.32", "ipyleaflet>=0.19", "ipywidgets>=8"]
-# crime.geoshapley — the cross-sectional "why is crime here" arm; not the classical base
-geoshapley = ["mgwr>=2.2", "shap>=0.44", "spreg>=1.7", "pyarrow>=15",
-         "xgboost>=2.0", "lightgbm>=4.0", "catboost>=1.2", "Boruta>=0.4",
-         "geoshapley>=0.2"]
+etl = ["geobr>=0.2", "pandera>=0.20", "python-calamine>=0.2"]
 dev = ["pytest>=8", "ruff>=0.6"]
-all = ["ic-crime[etl,raster,imagery,geoshapley]"]
-notebooks = ["jupyterlab==4.4.7", "notebook==7.4.5", "ipykernel==6.31.0", "nbstripout>=0.7",
-             "ipywidgets>=8"]
+all = ["campinas-crime-stpm[etl]"]
 
 [tool.setuptools.packages.find]
 include = ["crime*", "etl*"]
@@ -55,12 +42,12 @@ crime = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["db: needs the PostGIS database (docker compose -f database/docker-compose.yml up -d)"]
+markers = ["db: needs the PostGIS database (make db); skipped when it is unreachable"]
 
 [tool.ruff]
 line-length = 110
 target-version = "py311"
-extend-exclude = ["notebooks", "paper", "scripts/04_analyse/experiments"]
+extend-exclude = [".vibe-wise"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
