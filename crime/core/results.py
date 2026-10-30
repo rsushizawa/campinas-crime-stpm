@@ -4,7 +4,7 @@ Every local-statistic result (Gi*, LISA, space-time LISA, EHSA) labels units;
 comparisons between them reduce labels to a common **family** —
 ``"hotspot"`` / ``"coldspot"`` / ``"no pattern"`` — and measure overlap with a
 per-family Jaccard index. Those two helpers live here so every comparison
-(support sensitivity, prediction agreement) uses the same definition.
+(support sensitivity, weights agreement) uses the same definition.
 """
 from __future__ import annotations
 

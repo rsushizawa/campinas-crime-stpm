@@ -130,15 +130,14 @@ class CollinearityResult:
         print(self.vif.round(2).to_string())
         high = self.vif[self.vif > 5].index.tolist()
         if high:
-            print(f"VIF > 5 (collinear, attributions interchangeable): {', '.join(high)}")
+            print(f"VIF > 5 (collinear): {', '.join(high)}")
 
 
 def vif_table(X, feature_names: list[str] | None = None) -> CollinearityResult:
     """VIF per column + design-matrix condition number from an explicit feature
     matrix (DataFrame or 2-D array). Standardises, drops all-NaN / zero-variance
-    columns, and ignores rows with any NaN. Use this to attach a collinearity
-    check to any SHAP result — VIF > 5 means attributions between those columns
-    are not separable."""
+    columns, and ignores rows with any NaN. VIF > 5 is the usual flag that a
+    feature is close to a linear combination of the others."""
     df = X if isinstance(X, pd.DataFrame) else pd.DataFrame(X, columns=feature_names)
     df = df.select_dtypes("number").dropna()
     z = (df - df.mean()) / df.std(ddof=0)

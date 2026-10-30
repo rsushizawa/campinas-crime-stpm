@@ -8,18 +8,14 @@ re-deriving its own matrix:
     cube = space_time_cube(ds, freq="ME")          # -> CubeResult (a SpaceTimeCube)
     cube.layer("count")                             # observed unit x period counts
     cube.add_layer("gi_z", z)                       # emerging_hotspots writes this
-    panel = cube.to_panel(["count", "gi_z"])        # long form for modelling
+    panel = cube.to_panel(["count", "gi_z"])        # long form (unit, period, layers)
 
-``CubeResult`` is the back-compatible subclass returned by ``space_time_cube``:
-it keeps ``.wide`` (= the ``count`` layer), ``.panel``, ``.gdf`` and ``.freq``
-exactly as before, so existing consumers and notebooks are untouched.
+``CubeResult`` is the subclass returned by ``space_time_cube``: it keeps
+``.wide`` (= the ``count`` layer), ``.panel``, ``.gdf`` and ``.freq``.
 
 Layer conventions (written by later stages, not the constructor):
   observed    count · exposure · rate
-  statistical gi_z · gi_p · ehsa_category · ehsa_ml_category
-  predicted   risk · forecast · forecast_lower · forecast_upper
-  features    static columns broadcast over time; dynamic lag/rolling/calendar
-              and exogenous (tmax, precip, is_holiday, ambient) layers
+  statistical gi_z · gi_p · ehsa_category
 """
 from __future__ import annotations
 

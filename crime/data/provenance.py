@@ -1,7 +1,7 @@
 """Run provenance — stamp every result artefact with what produced it.
 
     from crime.data.provenance import provenance, write_provenance
-    write_provenance(out_dir / "backtest_property_ME.provenance.json", extra={"freq": "ME"})
+    write_provenance(out_dir / "ehsa_property_QE.provenance.json", extra={"freq": "QE"})
 
 ``provenance()`` returns the package version, key library versions, the git
 commit (if the working tree is a repo; ``-dirty`` when it has uncommitted

@@ -81,7 +81,7 @@ _export("crime.esri.maup", "support_sensitivity")
 _export("crime.stats.eda", "descriptive_stats", "temporal_trends", "DescriptiveResult", "TrendResult")
 _export("crime.stats.correlation", "feature_correlation", "crime_crime_correlation",
         "feature_collinearity", "vif_table", "CorrelationResult", "CollinearityResult")
-_export("crime.stats.validation", "label_agreement", "prediction_agreement")
+_export("crime.stats.validation", "label_agreement")
 # ---- viz
 _export("crime.viz.style", "PlotStyle")
 _export("crime.viz.classify", "classify", "bin_index")
