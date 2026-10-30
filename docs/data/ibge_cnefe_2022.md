@@ -51,7 +51,7 @@ Espécie 6 is officially *"Estabelecimento de outras finalidades"*, meaning
 establishments for any other purpose. The project uses it as a **commerce
 proxy**. It is not a commerce-specific category.
 
-> **Update (2026-10-23, #18):** deduplication is now on (`COD_UNICO_ENDERECO`,
+> **Update (2026-10-23):** deduplication is now on (`COD_UNICO_ENDERECO`,
 > `COD_ESPECIE`) in both `crime/data/cleaning.py:poi_counts` and
 > `etl/sources.py:extract_cnefe` (schema PK changed to the pair). Counts inside
 > the 2022 tracts: espécie 6 54,892 (raw 54,898), 4 1,096, 5 1,737, 8 1,863.
@@ -105,4 +105,4 @@ proxy**. It is not a commerce-specific category.
 | `database/enrich.sql` (`vw_sector_features`, `vw_grid_features`) | `cod_especie` ∈ {4, 5, 6, 8}, `cd_setor` / `grid_id` |
 | `crime/data/loaders.py:load_cnefe_points` (through `PostGISSource.cnefe_points`) | `cod_especie`, geometry |
 | `crime/data/cleaning.py:commercial_counts` | `COD_UNICO_ENDERECO, COD_ESPECIE`, geometry (the file is read directly, with `where COD_ESPECIE = '6'`) |
-| `paper/presentation_puc/src/make_fapesp_figs.py:_load_cnefe` | `COD_ESPECIE`, geometry |
+| `crime/data/cleaning.py:cnefe_poi_points` → `scripts/04_analyse/run_core.py` (step `assoc`) | `COD_UNICO_ENDERECO, COD_ESPECIE`, geometry (espécies 4, 5, 6, 8; assigned to every support by point-in-polygon) |

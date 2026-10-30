@@ -7,7 +7,7 @@ known quality issues (with numbers) and the code that reads it. The project
 follows the datasheet idea of Gebru et al. (2021), *Datasheets for Datasets*.
 
 Hashes were computed on 2026-10-22. "Status" is the current use by
-`etl/`, `crime/`, `scripts/`, `notebooks/` and `paper/`.
+`etl/`, `crime/` and `scripts/`.
 
 | File | Source | Used for | Status | Dictionary |
 |---|---|---|---|---|
@@ -15,17 +15,17 @@ Hashes were computed on 2026-10-22. "Status" is the current use by
 | `inputs/data/SPDadosCriminais_2025.xlsx` | SSP-SP | raw 2025 input (statewide) | read by `scripts/01_acquire` | [ssp_raw_inputs.md](../docs/data/ssp_raw_inputs.md) |
 | `inputs/data/crimes_campinas_2022_2024.csv.bak` | SSP-SP (origin unknown) | raw 2022–2024 input | read by `scripts/01_acquire`; tracked in Git LFS (explicit exception to the `*.bak` ignore) | [ssp_raw_inputs.md](../docs/data/ssp_raw_inputs.md) |
 | `inputs/data/geobr/census_tract_3509502_2022.parquet` | IBGE 2022 tracts via `geobr` | spatial unit | used | [ibge_census_tracts_2022.md](../docs/data/ibge_census_tracts_2022.md) |
-| `inputs/data/grade_id25_2022.zip` | IBGE *Grade Estatística* 2022, quadrant ID_25 | grid unit (raw) | used when the cache is missing | [ibge_statistical_grid.md](../docs/data/ibge_statistical_grid.md) |
-| `inputs/data/geobr/statistical_grid_2022_campinas.parquet` | clip of the above (made by `extract_grid`) | grid unit | used | [ibge_statistical_grid.md](../docs/data/ibge_statistical_grid.md) |
+| `inputs/data/grade_id25_2022.zip` | IBGE *Grade Estatística* 2022, quadrant ID_25 | grid unit (raw), PostGIS warehouse only | read by `extract_grid` (`load_database.py`) when the cache is missing; not used by `run_core.py` | [ibge_statistical_grid.md](../docs/data/ibge_statistical_grid.md) |
+| `inputs/data/geobr/statistical_grid_2022_campinas.parquet` | clip of the above (made by `extract_grid`) | grid unit, PostGIS warehouse only (`dim_grid_cell`) | read by `load_database.py`; not used by `run_core.py` | [ibge_statistical_grid.md](../docs/data/ibge_statistical_grid.md) |
 | `inputs/data/geobr/Agregados_por_setores_basico_BR_20260520.zip` | IBGE Censo 2022, Agregados por Setores, Básico | population `V0001`, households `V0007` | used (untracked) | [ibge_agregados_basico_2022.md](../docs/data/ibge_agregados_basico_2022.md) |
 | `inputs/data/geobr/Agregados_por_setores_renda_responsavel_BR_20260508_csv.zip` | IBGE Censo 2022, Rendimento do Responsável | income `V06004`, `V06006` | used (untracked) | [ibge_renda_responsavel_2022.md](../docs/data/ibge_renda_responsavel_2022.md) |
 | `inputs/data/geobr/dicionario_de_dados_renda_responsavel_20260508.xlsx` | IBGE official dictionary | documentation | reference (untracked) | [ibge_renda_responsavel_2022.md](../docs/data/ibge_renda_responsavel_2022.md) |
 | `inputs/data/Painel_IBGE_2022.csv` | IBGE Censo 2022, Alfabetização (values verified equal); compiler unverified | literacy `V00900`, `V00901` | used | [ibge_painel_literacy_2022.md](../docs/data/ibge_painel_literacy_2022.md) |
 | `inputs/data/qg_810_endereco_Munic3509502.json` | IBGE CNEFE 2022 | address points, `COD_ESPECIE` | used | [ibge_cnefe_2022.md](../docs/data/ibge_cnefe_2022.md) |
 | `inputs/data/map.geojson` | Campinas UTB (publisher unverified); **2010 Census attributes** | 93 UTB polygons (overlay); `rendatemei` is a count | used | [campinas_utb.md](../docs/data/campinas_utb.md) |
-| (in memory, `scripts/04_analyse/run_core.py`) | assembled: property crime, tract × quarter / month | primary EHSA input | generated (formerly snapshotted to `outputs/board/tract_counts.parquet` by a removed script) | [property_tract_month_cube.md](../docs/data/property_tract_month_cube.md) |
+| (in memory, `scripts/04_analyse/run_core.py`) | assembled: property crime, tract × quarter / month | primary EHSA input | generated in memory | [property_tract_month_cube.md](../docs/data/property_tract_month_cube.md) |
 
-## Acquire and clean (scripted, #13)
+## Acquire and clean (scripted)
 
 `scripts/01_acquire/acquire_ssp.py` builds `outputs/data/crimes_campinas.csv`
 (one row per offence record) from the two raw SSP-SP files, and
@@ -35,10 +35,11 @@ Hashes were computed on 2026-10-22. "Status" is the current use by
 `crimes_campinas.csv` is kept only so the scripted output can be compared with
 it row for row (`outputs/data/acquire_report.json → vs_legacy`).
 
-## Removed in #13
+## Removed
 
-Owner decision (2026-10-23): unused or duplicate files were removed with
-`git rm`; they stay recoverable from git history. Their datasheets are kept,
+Owner decision (2026-10-23, in the IC-Crime repository): unused or duplicate
+files were removed with `git rm`; they stay recoverable from that
+repository's history (tag `archive/pre-reset-2026-10-30`). Their datasheets are kept,
 marked as removed. Last SHA-256 values:
 
 ```
@@ -56,9 +57,9 @@ f50182728f45d6562784b73b84b276be7d930e3c58ddc8c5feac1541d930b8d8  inputs/data/an
 ```
 
 - `Agregados_por_setores_basico_BR.zip`: byte-identical duplicate of
-  `geobr/Agregados_por_setores_basico_BR_20260520.zip`, which the deck script now reads.
-- `analitico_setor.geojson`: legacy derived table; the deck commerce-density map
-  now counts CNEFE `COD_ESPECIE == 6` addresses per tract by point-in-polygon
+  `geobr/Agregados_por_setores_basico_BR_20260520.zip`.
+- `analitico_setor.geojson`: legacy derived table; commerce per tract is now
+  counted from CNEFE `COD_ESPECIE == 6` addresses by point-in-polygon
   (`crime.data.cleaning.commercial_counts`).
 - `geobr/statistical_grid_3509502_2010.parquet`, `grade_id35/*`: never read by code.
 

@@ -9,7 +9,7 @@ database column `income_mean` (see Quality notes).
 
 | Item | Value |
 |---|---|
-| Producer | Prefeitura Municipal de Campinas, according to the deck ("Prefeitura UTB (n.d.)"). **Unverified**: no URL, document or metadata in the repo or the file names the publisher |
+| Producer | **Unverified.** Presumably the Prefeitura Municipal de Campinas (UTB is the municipal planning unit), but no URL, document or metadata in the repo or the file names the publisher |
 | URL | **Unknown / unverified** |
 | Census vintage of the attributes | **2010 Census (verified).** `tot_pop` sums to **1,080,113**, exactly the 2010 resident population of Campinas in IBGE SIDRA table 202 (`https://apisidra.ibge.gov.br/values/t/202/n6/3509502/v/93/p/2010/c1/0/c2/0`, queried 2026-10-22). The attributes are **not** 2022 data |
 | Download date | Unknown. Committed in `6891c8b` (2026-08-16) |
@@ -49,7 +49,7 @@ from the field names and unverified**, except where noted.
 | `tot_pop` | int | total residents, 2010 (verified by the sum above) | 0…85,844 | ETL |
 | `tot_dom` | int | total households, 2010 | 0…26,807; sum 348,503 | ETL |
 | `tot_pop_fa` | int | **unverified**. Possibly the population in *favelas* / subnormal agglomerates | 0…17,695 | ETL |
-| `rendatemei` | int | **count** of persons with income up to ½ minimum wage. This is not an income level. The `etl/sources.py:extract_utb` docstring and issue #1 c5 give this definition | 0…606 | ETL → `n_low_income_half_mw` → `income_mean` |
+| `rendatemei` | int | **count** of persons with income up to ½ minimum wage. This is not an income level. The `etl/sources.py:extract_utb` docstring and IC-Crime#1 c5 give this definition | 0…606 | ETL → `n_low_income_half_mw` → `income_mean` |
 | `rendmeioa1`, `rend1a2_sm`, … `rendmaisd2` | int | counts by income band in minimum wages (½–1, 1–2, 2–3, 3–5, 5–10, 10–15, 15–20, > 20). Whether these count persons or heads is **unverified** | — | no |
 | `rend_dompc`, `rend_dom_1` … `rend_dom_8` | int | household income-band counts (**unverified**) | — | no |
 | `mulheres`, `homens` | int | women, men | — | no |
@@ -65,8 +65,9 @@ from the field names and unverified**, except where noted.
 - **`rendatemei` is a count, not an income.** `database/enrich.sql` still
   copies it into `dim_setor_censitario.income_mean` and
   `dim_grid_cell.income_mean`, using the UTB that contains each centroid.
-  `crime/data/catalog.py:DEFAULT_FEATURES` still lists `income_mean` as a
-  model feature. For the real 2022 income, see
+  `crime/data/catalog.py:DEFAULT_FEATURES` still lists `income_mean` (the
+  default feature set of `feature_collinearity`, DB path only; the core
+  pipeline does not use it). For the real 2022 income, see
   [ibge_renda_responsavel_2022.md](ibge_renda_responsavel_2022.md).
 
 ## Code that reads it
@@ -76,4 +77,3 @@ from the field names and unverified**, except where noted.
 | `etl/sources.py:extract_utb`, which feeds `dim_utb` in `scripts/02_clean/load_database.py` | `utb_sigla, denominaca→denominacao, tot_pop, tot_dom, tot_pop_fa, rendatemei→n_low_income_half_mw`, geometry |
 | `database/enrich.sql` | `n_low_income_half_mw` → `income_mean` (sector and grid) |
 | `crime/data/postgis.py:PostGISSource.overlay` (`load_sectors(overlay=True)`) | `gid, utb_sigla`, geometry |
-| `paper/presentation_puc/src/make_fapesp_figs.py` | geometry (map frame) |

@@ -1,4 +1,4 @@
-"""Acquire stage: raw SSP-SP extracts -> one Campinas offence-record table (issue #13).
+"""Acquire stage: raw SSP-SP extracts -> one Campinas offence-record table (IC-Crime#13).
 
     from etl import acquire
     df, report = acquire.build_crimes_table()          # raw inputs from crime.core.config

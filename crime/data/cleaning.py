@@ -1,13 +1,13 @@
 """Raw-file cleaning: crime events and per-tract census attributes.
 
-Extracted from the scrapped count-model arm (issues #3–#6, 2026-10); only
+Extracted from the scrapped count-model arm (IC-Crime#3–#6, 2026-10); only
 the data-cleaning steps are kept.
 
 Events
     :func:`filter_events` keeps crimes by **occurrence date** in
     [:data:`DATE_START`, :data:`DATE_END`] and drops unparseable dates (e.g.
     ``'1202-02-28'``). The lower bound removes the ~1,008 bulletins filed in
-    2022+ for crimes that occurred earlier (issue #1).
+    2022+ for crimes that occurred earlier (IC-Crime#1).
     :func:`assign_tracts` joins each geocoded crime to its 2022 tract by
     point-in-polygon (``predicate='within'``, first match), as
     ``etl.postgis.assign_unit`` does.
@@ -23,7 +23,7 @@ Tract attributes (all 2022)
                                 A CNEFE row is one use type at one address, so
                                 rows are deduplicated on (``COD_UNICO_ENDERECO``,
                                 ``COD_ESPECIE``): an address with a school and a
-                                shop counts once in each (issue #18).
+                                shop counts once in each (IC-Crime#18).
     ``income_head_mean``        IBGE 2022 Rendimento do Responsável ``V06004``:
                                 mean nominal monthly income (R$) of household
                                 heads with income. Suppressed tracts -> NaN.
@@ -42,7 +42,7 @@ Tract attributes (all 2022)
                                 same tracts IBGE suppresses for income) stay NaN.
 
     The UTB ``rendatemei`` field is a count of low-income residents, not an
-    income (issue #1 comment 5), and is not used here.
+    income (IC-Crime#1 comment 5), and is not used here.
 
     from crime.data.cleaning import build_tract_attributes
     tracts = build_tract_attributes()      # GeoDataFrame, EPSG:31983
@@ -158,7 +158,7 @@ POI_SPECIES = {"4": "n_education", "5": "n_health", "6": "n_commercial", "8": "n
 
 def cnefe_poi_points(cnefe_path: Path) -> gpd.GeoDataFrame:
     """CNEFE 2022 address points of the POI use types in :data:`POI_SPECIES`,
-    deduplicated on (``COD_UNICO_ENDERECO``, ``COD_ESPECIE``) (issue #18), with
+    deduplicated on (``COD_UNICO_ENDERECO``, ``COD_ESPECIE``) (IC-Crime#18), with
     a ``poi`` column naming the type (``n_commercial`` ...). CRS as stored in
     the file (WGS84). Shared by :func:`poi_counts` (tracts) and any other
     support, which assigns the points with
@@ -180,7 +180,7 @@ def poi_counts(cnefe_path: Path, tracts: gpd.GeoDataFrame) -> pd.DataFrame:
     crimes are assigned to.
 
     A CNEFE row is one use type at one address (IBGE dictionary), so rows are
-    deduplicated on (``COD_UNICO_ENDERECO``, ``COD_ESPECIE``), issue #18.
+    deduplicated on (``COD_UNICO_ENDERECO``, ``COD_ESPECIE``), IC-Crime#18.
     CNEFE's own ``COD_SETOR`` is not used: for 15,594 of the 54,898 commercial
     addresses it disagrees with the polygon the point lies in (and 540 of its
     codes are not 2022 tract ids at all), so a code join would lose or move

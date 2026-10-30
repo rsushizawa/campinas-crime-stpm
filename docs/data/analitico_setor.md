@@ -1,8 +1,7 @@
 # `inputs/data/analitico_setor.geojson`: legacy derived tract table (not a raw source)
 
-> **Removed in #13** (owner decision, 2026-10-23; recoverable from git history before this commit). Its only reader, the deck commerce-density map
-> (`paper/presentation_puc/src/make_fapesp_figs.py`), now counts CNEFE 2022
-> `COD_ESPECIE == 6` addresses per tract by point-in-polygon
+> **Removed** (owner decision, 2026-10-23, in the IC-Crime repository; recoverable from its history, tag `archive/pre-reset-2026-10-30`). It is not in this repository. Commerce per tract is now
+> counted from CNEFE 2022 `COD_ESPECIE == 6` addresses by point-in-polygon
 > (`crime.data.cleaning.commercial_counts`): 54,892 addresses in 2,228 tracts,
 > against 43,408 `total_comercio` in this legacy file.
 
@@ -38,16 +37,8 @@ Column definitions are **unverified**. The code that defined them is gone.
 
 ## Use
 
-- **Not read by `etl/` or `crime/`.**
-- One reader remains: `paper/presentation_puc/src/make_fapesp_figs.py:_enriched`
-  uses `cd_setor` and `total_comercio`. It feeds the deck's commerce-density
-  layer (`layer_commerce_density`).
-- `grep` over `scripts/`, `notebooks/` and `database/` finds no other
-  reference.
+- **Not read by any code in this repository.**
 
 Its `total_comercio` duplicates what `crime/data/cleaning.py:commercial_counts`
 now computes reproducibly from CNEFE. How `total_comercio` was defined is
 unknown, so the two may differ.
-
-**Unused by the library. Removed in #13 (owner decision)**, after
-`make_fapesp_figs.py` was switched to `commercial_counts`.

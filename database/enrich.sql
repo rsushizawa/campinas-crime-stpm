@@ -25,7 +25,7 @@ FROM (
 ) sub
 WHERE sub.cd_setor = s.cd_setor AND s.populacao_total IS NULL;
 
--- KNOWN MISLABEL (issue #1/#6): the sector/grid `income_mean` columns below hold the
+-- KNOWN MISLABEL (IC-Crime#1/#6): the sector/grid `income_mean` columns below hold the
 -- UTB count of residents earning <= 1/2 minimum wage, NOT an income. Kept only so the
 -- old schema keeps loading; use the IBGE 2022 V06004/V06006 columns (etl.sources.extract_income_2022).
 UPDATE dim_setor_censitario s SET income_mean = (

@@ -124,8 +124,8 @@ stated in any of the files; each datasheet marks its licence **"to check"**.
 | Rendimento do Responsável (income of household heads) | IBGE, Censo 2022 | [ibge_renda_responsavel_2022.md](docs/data/ibge_renda_responsavel_2022.md) | not stated, to check |
 | Literacy per tract (`Painel_IBGE_2022.csv`) | values equal IBGE Censo 2022 *Alfabetização*; compiler unverified | [ibge_painel_literacy_2022.md](docs/data/ibge_painel_literacy_2022.md) | not stated, to check |
 | CNEFE 2022 address points | IBGE | [ibge_cnefe_2022.md](docs/data/ibge_cnefe_2022.md) | not stated, to check |
-| UTB planning units (`map.geojson`) | publisher unverified (Prefeitura de Campinas per the deck) | [campinas_utb.md](docs/data/campinas_utb.md) | not stated, to check |
-| Statistical grid 2022 | IBGE | [ibge_statistical_grid.md](docs/data/ibge_statistical_grid.md) | not stated, to check |
+| UTB planning units (`map.geojson`) | publisher unverified | [campinas_utb.md](docs/data/campinas_utb.md) | not stated, to check |
+| Statistical grid 2022 (PostGIS warehouse only) | IBGE | [ibge_statistical_grid.md](docs/data/ibge_statistical_grid.md) | not stated, to check |
 
 The code is released under the MIT licence ([`LICENSE`](LICENSE)); the
 licence does not extend to the data.

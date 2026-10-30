@@ -139,7 +139,7 @@ def taxonomy_rows() -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------- #
-#  Maximum penalty per slug — the one-row-per-bulletin rule (issue #13)
+#  Maximum penalty per slug — the one-row-per-bulletin rule (IC-Crime#13)
 # --------------------------------------------------------------------------- #
 # A bulletin (NUM_BO + ANO_BO + NOME_DELEGACIA) can carry several offence
 # records. ``collapse_bulletins`` keeps the record whose offence has the highest

@@ -1,4 +1,4 @@
-"""Stage 03 — data validation schemas (pandera), issue #13.
+"""Stage 03 — data validation schemas (pandera), IC-Crime#13.
 
 Two tables are validated:
 

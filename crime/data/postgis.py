@@ -6,7 +6,7 @@ and alternative backends (a parquet snapshot, a fixture) can be injected.
 
 Tables / views read (see ``database/schema.sql`` and ``database/enrich.sql``):
 
-    vw_sector_features, vw_grid_features   one row per unit + model features
+    vw_sector_features, vw_grid_features   one row per unit + urban features
     fato_crimes                            one row per geocoded crime
     dim_utb                                planning-unit boundary overlay
     dim_cnefe_enderecos                    CNEFE establishment points

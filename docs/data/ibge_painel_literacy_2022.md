@@ -69,9 +69,8 @@ The definitions are those of the IBGE dictionary
 - `scripts/02_clean/reload_painel.py:main` also reads it, through `extract_literacy`.
 - `crime/data/cleaning.py:RawPaths.painel` produces `literacy_rate`, from
   `alfa_15_mais_sabe` and `alfa_15_mais_nao_sabe` only.
-- `paper/presentation_puc/src/make_fapesp_figs.py` uses it for deck figures.
 
-**Suggested for #13:** read V00900/V00901 straight from the IBGE
+**Suggested:** read V00900/V00901 straight from the IBGE
 *Alfabetização* zip, as the `extract_literacy` docstring already proposes, and
 retire this hand-made CSV. The values are identical, so the switch changes no
 number.

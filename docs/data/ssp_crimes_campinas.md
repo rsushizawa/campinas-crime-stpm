@@ -1,6 +1,6 @@
 # SSP-SP crime bulletins, Campinas 2022–2025 (`inputs/data/crimes_campinas.csv`)
 
-> **Update (#13):** this hand-assembled file is now **legacy**. The pipeline reads
+> **Update (2026-10-22):** this hand-assembled file is now **legacy**. The pipeline reads
 > the scripted `outputs/data/crimes_campinas.csv` (01_acquire) and the
 > one-row-per-bulletin `outputs/data/bulletins_clean.parquet` (02_clean); see
 > [ssp_bulletins_clean.md](ssp_bulletins_clean.md). The numbers below describe
@@ -19,15 +19,15 @@ shown here. Scratch scripts were not committed.
 | Item | Value |
 |---|---|
 | Publisher | Secretaria da Segurança Pública do Estado de São Paulo (SSP-SP), "SPDados" open crime data |
-| URL | `https://www.ssp.sp.gov.br/estatistica/consultas`. The IC-Crime paper repository cites it in `paper/companion/companion.tex` (R12). **Unverified** that this page serves these exact files |
+| URL | `https://www.ssp.sp.gov.br/estatistica/consultas`. **Unverified** that this page serves these exact files |
 | Download date | **Unknown.** The file first appears in git in commit `6891c8b` (2026-08-16, "feat: data with lfs") and has not changed since. That date is only an upper bound |
 | Licence | Not stated in the file or the repo. **To check** |
 | Format | `;`-separated, UTF-8, CRLF line endings, 1 header row, 25 columns |
 | Size / rows | 48,990,035 bytes. 139,301 data rows |
-| SHA-256 | `19d7cf1f3f0e4b987e7feed679a601767ac7699ceeb37ae6854c24572ee64cda` (the removed deck run's `outputs/board/data_audit.json → source_sha256` reported the same hash) |
+| SHA-256 | `19d7cf1f3f0e4b987e7feed679a601767ac7699ceeb37ae6854c24572ee64cda` |
 | Tracked by | git LFS |
 
-### How this file was built: a known gap (to be scripted in #13, Acquire stage)
+### How this file was built (inferred; now superseded by `scripts/01_acquire`)
 
 No script in the repo produces `crimes_campinas.csv`. The steps below were
 inferred by comparing the file with the two raw inputs. See
@@ -65,7 +65,7 @@ registered bulletin**. It is not one incident and not one bulletin.
   one BO records both *Furto – Outros* and *Lesão corporal – Dolosa*). In 801
   keys the repeated rows have different `RUBRICA` values.
 - `NUM_BO + ANO_BO` alone repeats 7,516 times. That key is not unique across
-  police stations (the removed deck run's `outputs/board/data_audit.json` reported the same 7,516).
+  police stations.
 - 1 row is an exact duplicate of another row.
 - In this legacy file nothing is deduplicated. The current pipeline collapses the
   scripted equivalent to one row per bulletin (`scripts/02_clean/clean_bulletins.py`;
@@ -129,7 +129,7 @@ of the data is prohibited") is a third code.
   *Lesão corporal dolosa* (5,846 rows), *Estupro de vulnerável* (all 749 in
   2022–24), *Estupro* (all 269 in 2022–24).
 - **Stacking:** the top non-zero coordinate holds 415 rows. 115 coordinates hold
-  ≥ 50 rows each, 17,178 rows in total including `(0,0)` (see #9 /
+  ≥ 50 rows each, 17,178 rows in total including `(0,0)` (see IC-Crime#9 /
   street-level geocoding).
 - **Occurrence date before 2022:** 1,008 rows; the earliest is 1943-07-19.
   These are bulletins filed in 2022+ for older facts, and they are removed by
@@ -145,7 +145,7 @@ of the data is prohibited") is a third code.
 
 ## Code that reads it
 
-Since #13 the first three readers below take the **scripted**
+The first three readers below take the **scripted**
 `outputs/data/crimes_campinas.csv` (same 25 columns; `crime.core.config.CRIMES_CSV`),
 not this legacy file; the core analysis (`scripts/04_analyse/run_core.py`) reads
 only `outputs/data/bulletins_clean.parquet`. The last row is the only reader of

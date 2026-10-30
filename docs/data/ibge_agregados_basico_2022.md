@@ -14,18 +14,17 @@ for the 2022 tracts.
 | Format | zip containing `Agregados_por_setores_basico_BR.csv` (140,970,380 bytes, zip member dated 2026-05-08). `;`-separated, latin-1, decimal comma |
 | Coverage | all of Brazil: 468,099 tracts, 38 columns. Campinas: 2,592 tracts (`CD_SETOR` starts with `3509502`) |
 
-There are **two local copies, and they are byte-identical** (same SHA-256
+There were **two local copies, byte-identical** (same SHA-256
 `ec04624286233d699ebe69c7b9625744a1cfdfc8352126f30245bdef5e9bdc63`):
 
 | Path | Tracked | Date | Read by |
 |---|---|---|---|
 | `inputs/data/geobr/Agregados_por_setores_basico_BR_20260520.zip` | untracked | file mtime 2026-09-29 12:09, probably the download time of `extract_census_2022` | `etl/sources.py:extract_census_2022`, which downloads it if it is absent; `crime/data/cleaning.py:RawPaths.census_basico` |
-| `inputs/data/Agregados_por_setores_basico_BR.zip` | **Removed in #13** (owner decision, 2026-10-23; recoverable from git history before this commit) | — | was `make_fapesp_figs.py:_agregados_pop`, which now reads the `geobr/` copy |
+| `inputs/data/Agregados_por_setores_basico_BR.zip` | **Removed** (owner decision, 2026-10-23, in the IC-Crime repository; recoverable from its history, tag `archive/pre-reset-2026-10-30`) | — | — |
 
-The `etl/sources.py` docstring calls the `inputs/data` copy "preliminary". It is
-in fact identical to the 2026-05-20 release. The `inputs/data` copy is
-**redundant. Removed in #13 (owner decision)**, after
-`make_fapesp_figs.py` was pointed at the `inputs/data/geobr` path.
+The `etl/sources.py` docstring calls the `inputs/data` copy "preliminary". It
+was in fact identical to the 2026-05-20 release, hence its removal as
+redundant.
 
 ## What one row is
 

@@ -49,8 +49,7 @@ The column names come from `geobr`. The official definitions are in IBGE's
 |---|---|
 | `etl/sources.py:extract_census_tracts`, which feeds `dim_setor_censitario` in `scripts/02_clean/load_database.py` | `code_tract→cd_setor`, `name_muni→nm_municipio`, `name_district→nm_distrito`, `zone→situacao`, `geometry` |
 | `crime/data/cleaning.py:build_tract_attributes` (through the extractor) | `cd_setor`, `geometry` |
-| `paper/presentation_puc/src/data_audit.py` | municipality outline, built as the union of the tracts |
-| `paper/presentation_puc/src/make_fapesp_figs.py` | reads the parquet directly, for deck figures |
+| `crime/data/units.py:load_units` (through the extractor) | every support: the tracts themselves, and the municipality outline (their union) that the hexagon / square tessellations are clipped to |
 
 The crime-to-tract assignment (`etl/postgis.py:assign_unit`) is a
 point-in-polygon join with `predicate='within'` that keeps the first match.

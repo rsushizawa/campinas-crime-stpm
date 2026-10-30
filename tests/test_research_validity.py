@@ -96,7 +96,7 @@ def test_majority_labels_cannot_hide_hotspot_disagreement():
 
 
 def test_space_time_lisa_all_non_significant_does_not_crash():
-    """Regression (#13): when no slice has a significant unit, modal_label is all 'ns'."""
+    """Regression (IC-Crime#13): when no slice has a significant unit, modal_label is all 'ns'."""
     import geopandas as gpd
     import pandas as pd
     from shapely.geometry import box

@@ -1,4 +1,4 @@
-"""Clean stage: one row per bulletin (issue #13).
+"""Clean stage: one row per bulletin (IC-Crime#13).
 
     from etl.clean import collapse_bulletins
     bulletins, report = collapse_bulletins(records)

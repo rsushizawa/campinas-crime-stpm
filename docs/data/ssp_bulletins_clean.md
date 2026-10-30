@@ -1,6 +1,6 @@
 # SSP-SP bulletins, scripted acquire + one row per bulletin (`outputs/data/`)
 
-Issue #13. This page documents the two scripted tables that replace the
+This page documents the two scripted tables that replace the
 hand-assembled `inputs/data/crimes_campinas.csv` as the source of every crime
 count. All numbers come from `outputs/data/acquire_report.json`,
 `dedup_report.json` and `funnel.json` written on 2026-10-22 by the stage
@@ -63,7 +63,7 @@ differs.
 A bulletin is `NUM_BO + ANO_BO + NOME_DELEGACIA`. In the acquired table, 941
 bulletins have more than one record (971 extra rows); in 935 of them the
 records differ in `NATUREZA_APURADA`; 1 row is an exact duplicate. (On the
-legacy CSV the same code gives the 939 / 969 / 933 / 1 of #11; the 2 extra
+legacy CSV the same code gives the 939 / 969 / 933 / 1 of IC-Crime#11; the 2 extra
 bulletins come from the filter change.) The two sources share no bulletin key.
 
 **Kept record = highest maximum penalty** of the base form (caput), in years,

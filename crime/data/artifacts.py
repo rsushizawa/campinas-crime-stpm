@@ -1,4 +1,4 @@
-"""Persist slow results so notebooks load instead of recompute.
+"""Persist slow results so later runs load instead of recompute.
 
 Each result is saved as a **directory**: tabular parts as Parquet
 (``period x unit`` layers are transposed so the datetime axis is the index)

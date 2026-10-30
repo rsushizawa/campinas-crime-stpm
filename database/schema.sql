@@ -83,7 +83,7 @@ CREATE TABLE dim_cnefe_enderecos (
     dsc_estabelecimento VARCHAR(100),
     cod_especie         SMALLINT,
     geometry            GEOMETRY(Point, 4326),
-    PRIMARY KEY (cod_unico_endereco, cod_especie)   -- one row per use type per address (#18)
+    PRIMARY KEY (cod_unico_endereco, cod_especie)   -- one row per use type per address (IC-Crime#18)
 );
 CREATE INDEX idx_cnefe_geom    ON dim_cnefe_enderecos USING GIST(geometry);
 CREATE INDEX idx_cnefe_setor   ON dim_cnefe_enderecos (cd_setor);
@@ -98,13 +98,13 @@ CREATE TABLE dim_crime_taxonomy (
     crime_group_label VARCHAR(50)
 );
 
--- Crime fact table — one row per occurrence bulletin (deduplicated in scripts/02_clean, #13),
+-- Crime fact table — one row per occurrence bulletin (deduplicated in scripts/02_clean, IC-Crime#13),
 -- natures translated at ingest; only bulletins with a usable coordinate are loaded
 CREATE TABLE fato_crimes (
     id_crime         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     num_bo           VARCHAR(20),
     ano_bo           SMALLINT,
-    nome_delegacia   VARCHAR(120),     -- with num_bo + ano_bo: the bulletin key (unique, #13)
+    nome_delegacia   VARCHAR(120),     -- with num_bo + ano_bo: the bulletin key (unique, IC-Crime#13)
     data_ocorrencia  DATE,
     hora_ocorrencia  TIME,
     periodo          VARCHAR(30),

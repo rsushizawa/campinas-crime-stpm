@@ -1,14 +1,18 @@
 # IBGE statistical grid (*Grade Estatística*): 2022 grid, its Campinas cache, and two unused grids
 
-The secondary polygon support (`load_grid`). Four grid files are in the
-repo. Two are used.
+The polygon support of the PostGIS warehouse (`dim_grid_cell`,
+`vw_grid_features`, `crime.load_grid`). Two grid files are in the repo, both
+read by the warehouse ETL (`scripts/02_clean/load_database.py` →
+`etl/sources.py:extract_grid`); the database-free core pipeline
+(`run_core.py`) does not use them (its regular supports are the hexagon /
+square tessellations of `crime.data.units`). Two other grids were removed.
 
 | File | Status |
 |---|---|
 | `inputs/data/grade_id25_2022.zip` | **used**: raw 2022 grid, quadrant ID_25 |
 | `inputs/data/geobr/statistical_grid_2022_campinas.parquet` | **used**: Campinas clip of the above (cache) |
-| `inputs/data/geobr/statistical_grid_3509502_2010.parquet` | **unused**; **Removed in #13** (owner decision, 2026-10-23; recoverable from git history before this commit) |
-| `inputs/data/grade_id35/grade_id35.*` (8 shapefile parts) | **unused**; **Removed in #13** (owner decision, 2026-10-23; recoverable from git history before this commit) |
+| `inputs/data/geobr/statistical_grid_3509502_2010.parquet` | **unused**; **Removed** (owner decision, 2026-10-23, in the IC-Crime repository; recoverable from its history, tag `archive/pre-reset-2026-10-30`) |
+| `inputs/data/grade_id35/grade_id35.*` (8 shapefile parts) | **unused**; **Removed** (owner decision, 2026-10-23, in the IC-Crime repository; recoverable from its history, tag `archive/pre-reset-2026-10-30`) |
 
 ## Official definition (all 2022 grid files)
 
@@ -70,9 +74,8 @@ are kept whole.
 - the CNEFE `grid_id` join (`scripts/02_clean/load_database.py`)
 - the fallback area-weighted tract population in `database/enrich.sql`, which
   is applied only where the tract has no *Agregados* value
-- `paper/presentation_puc/src/make_fapesp_figs.py`, for deck figures
 
-## `inputs/data/geobr/statistical_grid_3509502_2010.parquet` (removed in #13)
+## `inputs/data/geobr/statistical_grid_3509502_2010.parquet` (removed)
 
 - `geobr` 2010 statistical grid for Campinas: 13,760 cells. Columns:
   `id_unico`, `pop_total` (sum 1,066,499), `pop_fem`, `pop_masc`, `dom_ocu`
@@ -82,11 +85,10 @@ are kept whole.
   note "2010 grid — the latest available". Commit `01c1174` (2026-07-15)
   replaced it with the 2022 grid.
 - **No current code references it.** `grep` for `statistical_grid_3509502` and
-  `year=2010` over `etl/`, `crime/`, `scripts/`, `notebooks/`, `paper/` finds
-  nothing.
-- **Unused. Removed in #13 (owner decision).**
+  `year=2010` over the code finds nothing.
+- **Unused. Removed (owner decision).**
 
-## `inputs/data/grade_id35/grade_id35.*` (removed in #13)
+## `inputs/data/grade_id35/grade_id35.*` (removed)
 
 - IBGE 2022 grid, quadrant **ID_35**: 583,288 cells, EPSG:4674, bounds lat
   −22.27…−17.70. This lies **entirely north of Campinas**, whose cells lie
@@ -94,7 +96,7 @@ are kept whole.
   already recorded that "the local grade_id35 shapefile covers quadrant ID_35
   only, which lies north of Campinas".
 - SHA-256 of `.shp`: `2a66ca3aabaef9fe6893a2277cfa80343ec04a522deac192b7829d6330777600`.
-  The other parts are listed in `data/README.md`.
+  The other parts are listed in `inputs/data/README.md`.
 - **No code references it.** `grep` for `grade_id35` finds nothing outside git
   history.
-- **Unused. Removed in #13 (owner decision).**
+- **Unused. Removed (owner decision).**

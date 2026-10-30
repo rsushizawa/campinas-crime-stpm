@@ -132,7 +132,7 @@ def extract_utb(path: str | Path = UTB_GEOJSON) -> gpd.GeoDataFrame:
 
     ``rendatemei`` is a **count** of residents earning <= 1/2 minimum wage
     (max 606 per zone), not an income level; it was previously renamed to
-    ``income_mean`` by mistake (issue #1, comment 5: Spearman -0.585 against
+    ``income_mean`` by mistake (IC-Crime#1, comment 5: Spearman -0.585 against
     the real IBGE 2022 tract income). It is now exposed under the honest name
     ``n_low_income_half_mw``. For tract income use :func:`extract_income_2022`.
     """
@@ -146,7 +146,7 @@ def extract_utb(path: str | Path = UTB_GEOJSON) -> gpd.GeoDataFrame:
 def extract_cnefe(path: str | Path = CNEFE_JSON) -> gpd.GeoDataFrame:
     """CNEFE address points in EPSG:4326. A row is one use type (espécie) at one
     address, so duplicates are dropped on (cod_unico_endereco, cod_especie)
-    (issue #18; deduplicating on the address alone lost 8% of espécie 6)."""
+    (IC-Crime#18; deduplicating on the address alone lost 8% of espécie 6)."""
     rename = {
         "COD_UNICO_ENDERECO": "cod_unico_endereco", "COD_SETOR": "cd_setor", "CEP": "cep",
         "DSC_LOCALIDADE": "dsc_localidade", "NV_GEO_COORD": "nv_geo_coord",

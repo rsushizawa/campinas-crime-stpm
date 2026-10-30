@@ -64,7 +64,7 @@ def test_tract_attributes_keep_missing_and_literacy_blank_rule():
 
 
 def test_poi_counts_dedup_on_address_and_use_type(tmp_path):
-    """Issue #18: one CNEFE row is one use type at one address. An address with
+    """IC-Crime#18: one CNEFE row is one use type at one address. An address with
     a shop and a school counts once in each; an exact repeat counts once; other
     use types (1 = dwelling) and points outside every tract are not counted."""
     from crime.data.cleaning import poi_counts
