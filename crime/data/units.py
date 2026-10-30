@@ -232,8 +232,13 @@ def unit_dataset(
     ``bulletins`` defaults to ``outputs/data/bulletins_clean.parquet`` (one row
     per bulletin; ``LATITUDE``/``LONGITUDE`` in WGS84, ``DATA_OCORRENCIA_BO``
     ...). Rows are kept when they match ``crime_group`` (``None`` = all
-    groups), have coordinates, and occurred within ``years`` (inclusive);
-    each is assigned to a unit by :func:`assign_points` — also for tracts, so
+    groups), have coordinates, occurred within ``years`` (inclusive) and —
+    when the frame has a ``cd_setor`` column (stage 02's tract assignment) —
+    lie in a 2022 census tract (``cd_setor`` not null). The last rule gives
+    every support the **same event set** (the geocoded-in-tract bulletins the
+    point-pattern steps use), so MAUP comparisons compare like with like and
+    no support counts points that fall outside the tract mesh. Each kept row
+    is assigned to a unit by :func:`assign_points` — also for tracts, so
     every support uses the same rule. Points outside every unit are dropped.
     ``units`` overrides :func:`load_units` (any frame with ``unit_id`` +
     geometry, e.g. for tests).
@@ -249,6 +254,8 @@ def unit_dataset(
     if crime_group is not None:
         b = b[b["crime_group"].eq(crime_group).fillna(False).astype(bool)]
     b = b[b["LATITUDE"].notna() & b["LONGITUDE"].notna()]
+    if "cd_setor" in b:                  # same event set on every support (see docstring)
+        b = b[b["cd_setor"].notna()]
     when = pd.to_datetime(b["DATA_OCORRENCIA_BO"], errors="coerce")
     lo, hi = pd.Timestamp(years[0], 1, 1), pd.Timestamp(years[1] + 1, 1, 1)
     b = b[when.ge(lo) & when.lt(hi)]

@@ -163,6 +163,23 @@ def test_unit_dataset_crime_group_filter(bulletins):
     assert prop.meta.crime_group == "property" and prop.years == (2022, 2023)
 
 
+def test_unit_dataset_keeps_only_in_tract_events(bulletins):
+    """With stage 02's ``cd_setor``, every support counts the same in-tract
+    event set: a geocoded row with no tract is dropped even when it falls
+    inside a unit of another support."""
+    units = tessellation(_boundary(), shape="square", area_km2=1.0)
+    base = unit_dataset("square", area_km2=1.0, years=(2022, 2023), bulletins=bulletins, units=units)
+    b = bulletins.copy()
+    b["cd_setor"] = "350950205000001"
+    inside = base.events.shape[0]
+    b.loc[b.index[10:20], "cd_setor"] = None          # 10 in-window, inside-the-grid rows lose their tract
+    ds = unit_dataset("square", area_km2=1.0, years=(2022, 2023), bulletins=b, units=units)
+    assert ds.gdf["crime_count"].sum() == inside - 10
+    # same rule on a second support: both count the same events
+    tr = unit_dataset("tract", years=(2022, 2023), bulletins=b, units=_tract_like())
+    assert tr.gdf["crime_count"].sum() == ds.gdf["crime_count"].sum()
+
+
 def test_unit_dataset_pandas_string_dtype(bulletins):
     """The real parquet uses nullable string columns, with missing groups."""
     b = bulletins.astype({"crime_group": "string", "crime_slug": "string"})
