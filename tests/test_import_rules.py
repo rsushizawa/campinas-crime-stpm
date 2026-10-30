@@ -2,9 +2,10 @@
 
 Layers (a module may import only from its own layer or layers to its left):
 
-    core  <-  data  <-  esri / stats  <-  viz
+    core  <-  data  <-  points / esri / stats  <-  viz
 
-esri and stats are peers. The removed arms (GeoShapley / prediction, NKDE and
+esri and stats are peers; points (the point-pattern methods) imports only
+core and data, and esri / stats do not import it. The removed arms (GeoShapley / prediction, NKDE and
 the street network, transitions, simulation, imagery, voxel) must not come
 back as imports. Checked statically with ``ast`` (covers lazy,
 function-level imports too), so no import-linter dependency is needed.
@@ -20,9 +21,11 @@ import pytest
 
 PKG = Path(__file__).resolve().parents[1] / "crime"
 
-RANK = {"core": 0, "data": 1, "esri": 2, "stats": 2, "viz": 3}
+RANK = {"core": 0, "data": 1, "points": 2, "esri": 2, "stats": 2, "viz": 3}
 #: explicit, documented exceptions: (importer layer, imported layer)
 ALLOWED = {("esri", "stats"), ("stats", "esri")}
+#: same-rank imports that are not allowed (points is isolated from its peers)
+FORBIDDEN = {("points", "esri"), ("points", "stats"), ("esri", "points"), ("stats", "points")}
 
 
 #: modules / third-party packages of the removed arms
@@ -69,7 +72,7 @@ def test_layering(path, module):
         dst = _layer(imported)
         if dst is None or dst == src or (src, dst) in ALLOWED:
             continue
-        if RANK[dst] > RANK[src]:
+        if RANK[dst] > RANK[src] or (src, dst) in FORBIDDEN:
             bad.append(f"{line}: {src} -> {imported}")
     assert not bad, f"{module} breaks the layer rule:\n" + "\n".join(bad)
 
