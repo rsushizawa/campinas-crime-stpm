@@ -76,13 +76,22 @@ def timed(label: str, sink: dict | None = None):
 
 def upsert(path: Path, df: pd.DataFrame, keys: dict[str, list]) -> None:
     """Write ``df`` to ``path`` (csv/parquet), replacing existing rows whose
-    key columns take the values of this run (``keys``: column -> values)."""
+    key columns **all** take the values of this run (``keys``: column -> values).
+
+    If the old file lacks a key column, none of its rows can be attributed to
+    this run, so none is dropped (a warning is logged; delete the file to
+    start clean) — never "drop everything because a key was missing"."""
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         old = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
-        drop = np.ones(len(old), dtype=bool)
-        for col, vals in keys.items():
-            if col in old:
+        missing = [c for c in keys if c not in old]
+        if missing:
+            log.warning("upsert %s: old file has no key column(s) %s; keeping all %d old rows",
+                        path, missing, len(old))
+            drop = np.zeros(len(old), dtype=bool)
+        else:
+            drop = np.ones(len(old), dtype=bool)
+            for col, vals in keys.items():
                 drop &= old[col].astype(str).isin([str(v) for v in vals]).to_numpy()
         df = pd.concat([old[~drop], df], ignore_index=True)
     if path.suffix == ".parquet":

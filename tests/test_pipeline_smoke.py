@@ -104,6 +104,7 @@ def test_pipeline_smoke() -> None:
 
         prov = crime.provenance(extra={"stage": "smoke"})
         assert prov["package_version"] and "numpy" in prov["libraries"]
+        assert "db" not in prov and "db" in crime.provenance(db=True)     # db only when one is used
 
 
 if __name__ == "__main__":

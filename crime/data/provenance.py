@@ -4,7 +4,10 @@
     write_provenance(out_dir / "backtest_property_ME.provenance.json", extra={"freq": "ME"})
 
 ``provenance()`` returns the package version, key library versions, the git
-commit (if the working tree is a repo), the DB target, and a UTC timestamp.
+commit (if the working tree is a repo; ``-dirty`` when it has uncommitted
+changes) and a UTC timestamp. The PostGIS target (``db``) is recorded only
+when the caller says the result was read from the database (``db=True``);
+the core pipeline uses no database, so its manifest has no ``db`` field.
 """
 from __future__ import annotations
 
@@ -50,27 +53,31 @@ def _git_commit() -> str | None:
         return None
 
 
-def provenance(extra: dict | None = None) -> dict:
-    from crime.core.config import DBConfig, __version__
+def provenance(extra: dict | None = None, *, db: bool = False) -> dict:
+    """Provenance record; ``db=True`` adds the PostGIS target (host:port/database)."""
+    from crime.core.config import __version__
 
-    db = DBConfig()
-    return {
+    out = {
         "package_version": __version__,
         "git_commit": _git_commit(),
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "python": sys.version.split()[0],
         "platform": platform.platform(),
-        "db": f"{db.host}:{db.port}/{db.database}",
         "argv": sys.argv,
         "cwd": os.getcwd(),
         "libraries": _lib_versions(),
-        **(extra or {}),
     }
+    if db:
+        from crime.core.config import DBConfig
+
+        cfg = DBConfig()
+        out["db"] = f"{cfg.host}:{cfg.port}/{cfg.database}"
+    return {**out, **(extra or {})}
 
 
-def write_provenance(path: str | Path, *, extra: dict | None = None) -> Path:
+def write_provenance(path: str | Path, *, extra: dict | None = None, db: bool = False) -> Path:
     """Write ``provenance()`` next to a result file (JSON). Returns the path."""
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(provenance(extra), indent=2, sort_keys=True))
+    p.write_text(json.dumps(provenance(extra, db=db), indent=2, sort_keys=True))
     return p
