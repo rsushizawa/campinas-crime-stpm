@@ -4,7 +4,8 @@
 #
 #   make env              # locked environment (uv sync, uv.lock) -> .venv
 #   make db               # PostGIS (PGPORT / CRIME_DB_CONTAINER / DB_PROJECT override the defaults)
-#   make acquire clean validate
+#   make acquire clean-data analyse   # no database needed
+#   make acquire clean validate       # + PostGIS load and validation
 #   make test             # pytest; DB tests are skipped when PostGIS is unreachable
 #
 # Run against a non-default database port with e.g. `PGPORT=5433 make clean`.
@@ -13,7 +14,7 @@ PY ?= .venv/bin/python
 DB_PROJECT ?= campinas-crime-stpm
 export PGPORT
 
-.PHONY: help env db acquire clean clean-data load-db validate validate-no-db analyse test
+.PHONY: help env db acquire clean clean-data load-db validate validate-no-db analyse analyse-quick test
 
 help:
 	@sed -n '1,10p' Makefile
@@ -43,10 +44,13 @@ validate:
 validate-no-db:
 	$(PY) scripts/03_test/validate_data.py --no-db
 
-# 04_analyse: PLACEHOLDER — the core pipeline script (Moran / Gi* / LISA / cube / EHSA / ...)
-# is not written yet; this target runs it once scripts/04_analyse/run_core.py exists.
+# 04_analyse: the core pipeline (STL, Moran, Gi*, LISA, EHSA, space-time LISA, TSC, MAUP,
+# Ripley / NNI / KDE, Knox, Spearman + bivariate Moran) -> outputs/core/. No database.
+# Parameters: scripts/04_analyse/core_config.py. Piecemeal: ANALYSE_ARGS="--steps where --groups property".
 analyse:
-	$(PY) scripts/04_analyse/run_core.py
+	$(PY) scripts/04_analyse/run_core.py $(ANALYSE_ARGS)
+analyse-quick:
+	$(PY) scripts/04_analyse/run_core.py --quick
 
 # ---- tests ----------------------------------------------------------------------------------
 test:
