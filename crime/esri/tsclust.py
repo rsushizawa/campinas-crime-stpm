@@ -28,7 +28,8 @@ Steps
     1. features: raw values, z-scored profile, or |DFT| of the first
        ``n_harmonics`` harmonics; 2. drop units below ``min_total``;
     3. sweep ``k_range`` (if ``k=None``) and keep the best pseudo-F;
-    4. relabel clusters by total level (0 = quietest) for a stable palette.
+    4. relabel clusters by mean per-unit total events (0 = quietest) for a
+       stable palette.
 Inputs → Outputs
     space-time cube → :class:`TSClusterResult` (per-unit ``cluster``, mean
     profile per cluster, pseudo-F by k).
@@ -132,9 +133,12 @@ def time_series_clustering(
     km = KMeans(n_clusters=k, random_state=seed, n_init=10).fit(Xk)
     labels = pd.Series(-1, index=wide.index, dtype=int)
     labels[wide.index[keep]] = km.labels_
-    # order clusters by mean level (0 = quietest) for a stable palette
-    order = (wide.loc[labels[labels >= 0].index]
-             .groupby(labels[labels >= 0]).sum().sum(axis=1).sort_values().index)
+    # order clusters by the mean per-unit total (0 = quietest) for a stable palette;
+    # not the cluster's summed total, which would rank a large quiet cluster above
+    # a small busy one. Ties (equal means) keep k-means label order.
+    clustered = labels[labels >= 0]
+    unit_total = wide.loc[clustered.index].sum(axis=1)
+    order = unit_total.groupby(clustered).mean().sort_values(kind="stable").index
     remap = {old: new for new, old in enumerate(order)}
     labels = labels.map(lambda v: remap.get(v, -1))
 

@@ -105,6 +105,23 @@ def test_tsc_value_groups_by_level():
     assert res.gdf["cluster"].iloc[0] == 0                            # 0 = quietest
 
 
+def test_tsc_order_is_by_mean_per_unit_total_not_cluster_sum():
+    """Many quiet units (summed total large) vs few busy ones: the busy cluster
+    must be the higher id. Ordering by the cluster's summed total would invert it."""
+    rng = np.random.default_rng(3)
+    quiet = rng.normal(1, 0.1, (200, 48))              # 200 units x ~48 events = ~9,600 in total
+    busy = rng.normal(50, 0.5, (3, 48))                # 3 units x ~2,400 = ~7,200 < the quiet sum
+    rows = np.r_[busy, quiet]
+    assert rows[:3].sum() < rows[3:].sum()
+    cube = _Cube(pd.DataFrame(rows, columns=MONTHS))
+    res = time_series_clustering(cube, method="value", k=2)
+    cl = res.gdf["cluster"].to_numpy()
+    assert (cl[:3] == 1).all() and (cl[3:] == 0).all()
+    tot = rows.sum(axis=1)
+    means = [tot[cl == c].mean() for c in range(res.k)]
+    assert means == sorted(means)
+
+
 def test_tsc_min_total_excludes_units():
     cube, _ = _two_profiles(np.random.default_rng(2))
     cube.wide.iloc[:3] = 0
