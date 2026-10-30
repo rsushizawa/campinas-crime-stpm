@@ -220,8 +220,10 @@ LL) and `ehsa_by_unit/<support>.parquet`.
 ## 6. Point patterns
 
 The points are the geocoded bulletins inside a 2022 tract. About 63 % of them
-share an exact coordinate with another bulletin (street-level geocodes stacked
-on one point), so Ripley's L and the NNI are computed on **all points** and on
+share an exact published latitude/longitude with another bulletin, and 65 %
+(`points_summary.csv`, `share_stacked_all`, group `all`) share a location once
+projected to EPSG:31983 and rounded to 1 mm, which is the rule used to build
+the distinct-location set (street-level geocodes stacked on one point), so Ripley's L and the NNI are computed on **all points** and on
 **distinct locations** (one point per coordinate) as a sensitivity.
 
 ### 6a. Ripley's K as Besag's L
@@ -336,7 +338,12 @@ on one point), so Ripley's L and the NNI are computed on **all points** and on
   only in the upper tail of the permutation distribution, so units whose
   value and neighbourhood are all zero can be labelled significant LL /
   cold (parked issue rsushizawa/IC-Crime#22). This affects LISA and
-  space-time LISA LL counts for sparse groups and fine supports.
+  space-time LISA LL counts for sparse groups and fine supports. In this
+  run (queen, static LISA) the LL units on 0.1 km² hexagons are almost all
+  zero-count units (drug 5,282 of 5,282; bodily harm 4,918 of 4,918;
+  property 3,325 of 3,377), whereas on tracts no unit passes BH at all (see
+  the item above): static LISA LL counts are driven by these two inference
+  artefacts and should not be read as low-crime clusters.
 - **Stacked geocodes.** ~63 % of geocoded bulletins share an exact coordinate
   with another bulletin (street-level geocoding). Counts per unit are
   concentrated on those points, point-pattern statistics see many
