@@ -1,7 +1,7 @@
 """Support sensitivity (MAUP) — do the hot spots survive a change of support?
 
 Method
-    Collapse each finer-support EHSA result (grid, street segments) onto a
+    Collapse each finer-support EHSA result (e.g. the statistical grid) onto a
     reference support (census tracts) by area / length-weighted overlay, then
     measure agreement of the hot / cold / no-pattern *families*.
 Reference
@@ -30,7 +30,7 @@ from crime.core.results import family, jaccard
 def support_sensitivity(ref, others: dict):
     """Aggregate one or more finer-support EHSA results onto ``ref``'s units by
     area/length-weighted overlay, and report family agreement against ``ref``
-    — turns a MAUP support comparison (sector vs grid vs street segment) into
+    — turns a MAUP support comparison (e.g. sector vs grid) into
     a number instead of three maps side by side. Complements
     :func:`crime.stats.validation.label_agreement`, which compares two label
     series on the *same* support (e.g. weights or trend-method sensitivity);
@@ -40,7 +40,7 @@ def support_sensitivity(ref, others: dict):
     Each finer unit's family (``"hotspot"``/``"coldspot"``/``"no pattern"``)
     is assigned to whichever ``ref`` unit it overlaps most (by intersection
     area for polygons, length for lines). Run ``ref``/``others`` under
-    matched inference (same ``permutations``, ``fdr``, ``alpha``) first, or
+    matched inference (same ``fdr``, ``alpha``, ``freq``) first, or
     the comparison mixes support choice with inference choice.
 
     Returns ``(labels, agreement)``: ``labels`` — ref unit x {"ref", *others}

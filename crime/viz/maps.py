@@ -1,10 +1,10 @@
 """Static (matplotlib) and interactive (plotly) unit-level maps.
 
 Consumes: ``GiStarResult`` (hotspot_map), ``LisaResult`` (lisa_map),
-``EhsaResult`` (ehsa_map, persistence_map, segment_ehsa_map), a cube
+``EhsaResult`` (ehsa_map, persistence_map), a cube
 (``CubeResult``/``SpaceTimeCube``: history_map, trend_map, grid_heatmap), or
-any result with ``.gdf`` / a bare GeoDataFrame (choropleth_map, risk_map,
-bivariate_choropleth, interactive_*). ``dataset`` supplies the boundary
+any result with ``.gdf`` / a bare GeoDataFrame (choropleth_map,
+bivariate_choropleth, interactive_map). ``dataset`` supplies the boundary
 overlay and id/value column names. Statistics come from :mod:`crime.esri`.
 
     from crime import hotspot_map, lisa_map, ehsa_map, choropleth_map, interactive_map
@@ -13,7 +13,6 @@ Space-time summary maps (one map instead of 16 EHSA categories):
   ``history_map(cube)``       — total crime over the whole period
   ``persistence_map(ehsa)``   — red ramp = share of slices hot, blue = cold
   ``trend_map(cube, on=…)``   — per-unit Theil-Sen slope (count or Gi* z)
-  ``segment_ehsa_map(ehsa)``  — street-segment EHSA, hot corridors drawn thick
   ``grid_heatmap(cube)``      — rasterise a 200 m grid result (legible where polygons are not)
 
 Static maps return ``(fig, ax)`` (choropleth/history add bin edges as a third value) and draw the article map frame; interactive
@@ -61,7 +60,7 @@ def _basemap(ax, gdf, basemap):
 
 
 # --------------------------------------------------------------------------- #
-#  choropleth / risk
+#  choropleth
 # --------------------------------------------------------------------------- #
 def choropleth_map(result, dataset=None, *, column: str | None = None, title: str = "",
                    scheme: str = "quantile", k: int = 5, edges: np.ndarray | None = None,
@@ -104,23 +103,6 @@ def choropleth_map(result, dataset=None, *, column: str | None = None, title: st
     _overlay(ax, dataset, overlay, style)
     _basemap(ax, gdf, basemap)
     return finish(fig), ax, edges
-
-
-def risk_map(gdf, dataset=None, *, column: str = "risk", title: str = "",
-             overlay: bool = False, basemap=DEFAULT_BASEMAP, style: PlotStyle = PlotStyle()):
-    """Sequential choropleth of a per-unit risk / probability column in [0, 1]
-    (any per-unit value in [0, 1])."""
-    gdf = getattr(gdf, "gdf", gdf)
-    fig, ax = map_axes(style, title or f"Predicted risk — {column}")
-    gdf.plot(column=column, cmap=style.cmap, ax=ax, vmin=0, vmax=1,
-             legend=True, alpha=0.8 if basemap else 1.0,
-             edgecolor=style.edge_color, linewidth=style.edge_width,
-             legend_kwds={"shrink": 0.6, "label": "P(crime)"},
-             missing_kwds={"color": "white", "hatch": "///"})
-    map_frame(ax, gdf, style)
-    _overlay(ax, dataset, overlay, style)
-    _basemap(ax, gdf, basemap)
-    return finish(fig), ax
 
 
 # --------------------------------------------------------------------------- #
@@ -371,30 +353,6 @@ def trend_map(cube, dataset=None, *, on: str = "count", weights: str = "queen",
     return finish(fig), ax
 
 
-def segment_ehsa_map(result, dataset=None, *, title: str = "", basemap=DEFAULT_BASEMAP,
-                     style: PlotStyle = PlotStyle()):
-    """Street-segment EHSA — hot segments drawn thick on a red ramp, cold thin on
-    blue, "no pattern" as a faint grey web, over a gray basemap. The thin-line
-    legibility fix for the network scale."""
-    palette = style.ehsa_palette
-    g = result.gdf
-    cats = g["category"].where(g["category"].isin(palette), "no pattern")
-    fig, ax = map_axes(style, title or "Street-segment EHSA")
-    g[cats == "no pattern"].plot(ax=ax, color="#cfcfcf", linewidth=0.25, alpha=0.6)
-    for cat, sub in g[cats != "no pattern"].groupby(cats):
-        lw = 2.6 if "hotspot" in cat else 1.4
-        sub.plot(ax=ax, color=palette[cat], linewidth=lw, alpha=0.95,
-                 capstyle="round", label=cat)
-    present = [c for c in palette if c in cats.values and c != "no pattern"]
-    ax.legend(handles=[mpatches.Patch(color=palette[c], label=c) for c in present],
-              loc="center left", bbox_to_anchor=(1.01, 0.5), fontsize=style.font_size - 3)
-    map_frame(ax, g, style)
-    _basemap(ax, g, basemap)
-    finish(fig)
-    fig.subplots_adjust(right=0.80)
-    return fig, ax
-
-
 def grid_heatmap(cube, dataset=None, *, column: str | None = None, agg: str = "sum",
                  title: str = "", style: PlotStyle = PlotStyle()):
     """Rasterise a 200 m IBGE statistical-grid result to an image — legible where
@@ -484,53 +442,3 @@ def interactive_map(result, dataset=None, *, column: str | None = None, title: s
                       width=int(style.figsize[0] * 100), height=int(style.figsize[1] * 100),
                       margin=dict(l=10, r=10, t=40, b=10))
     return fig
-
-
-def interactive_segment_map(result, dataset=None, *, column: str | None = None, title: str = "",
-                            zoom: float = 11.0, classes: int = 5, style: PlotStyle = PlotStyle()):
-    """Interactive plotly line map for street-segment results — categorical
-    columns use the palettes; numeric columns are binned into quantile classes
-    (Scattermap lines cannot take a continuous colorscale)."""
-    import plotly.graph_objects as go
-
-    gdf = getattr(result, "gdf", result)
-    column = _pick_column(gdf, result, dataset, column, ("category", "density_km"))
-    id_col = getattr(dataset, "id_col", "unit_id")
-    g = gdf[[c for c in (id_col, column) if c in gdf] + [gdf.geometry.name]].to_crs("EPSG:4326")
-
-    if g[column].dtype == object:
-        labels = g[column]
-        palette = {**style.ehsa_palette, **style.lisa_palette,
-                   **style.hotspot_palette, **style.gi_bin_palette}
-        order = [k for k in palette if k in labels.values]
-    else:
-        edges = np.unique(g[column].quantile(np.linspace(0, 1, classes + 1)))
-        bins = pd.cut(g[column], edges, include_lowest=True, duplicates="drop")
-        labels = bins.map(lambda b: f"{b.left:.3g}–{b.right:.3g}")
-        order = [f"{b.left:.3g}–{b.right:.3g}" for b in bins.cat.categories]
-        cmap = plt.get_cmap(style.cmap)
-        palette = {lab: to_hex(cmap(i / max(1, len(order) - 1))) for i, lab in enumerate(order)}
-
-    fig = go.Figure()
-    for lab in order:
-        sub = g[labels == lab]
-        lons, lats, texts = [], [], []
-        for uid, val, geom in zip(sub[id_col], sub[column], sub.geometry):
-            xs, ys = geom.xy
-            lons.extend(list(xs) + [None])
-            lats.extend(list(ys) + [None])
-            texts.extend([f"{uid}<br>{column}: {val}"] * len(xs) + [None])
-        fig.add_trace(go.Scattermap(lon=lons, lat=lats, mode="lines",
-                                    line=dict(color=palette[lab], width=2),
-                                    name=str(lab), legendgroup=str(lab),
-                                    text=texts, hoverinfo="text"))
-    minx, miny, maxx, maxy = g.total_bounds
-    fig.update_layout(
-        title=title or column,
-        map=dict(style="carto-positron", zoom=zoom,
-                 center=dict(lon=(minx + maxx) / 2, lat=(miny + maxy) / 2)),
-        template="simple_white", width=int(style.figsize[0] * 100),
-        height=int(style.figsize[1] * 100), margin=dict(l=10, r=10, t=40, b=10))
-    return fig
-
-

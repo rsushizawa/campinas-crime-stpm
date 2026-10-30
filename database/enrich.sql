@@ -27,7 +27,7 @@ WHERE sub.cd_setor = s.cd_setor AND s.populacao_total IS NULL;
 
 -- KNOWN MISLABEL (issue #1/#6): the sector/grid `income_mean` columns below hold the
 -- UTB count of residents earning <= 1/2 minimum wage, NOT an income. Kept only so the
--- old geoshapley arm keeps running; new code (crime.counts) uses IBGE 2022 V06004/V06006.
+-- old schema keeps loading; use the IBGE 2022 V06004/V06006 columns (etl.sources.extract_income_2022).
 UPDATE dim_setor_censitario s SET income_mean = (
     SELECT u.n_low_income_half_mw FROM dim_utb u
     WHERE ST_Contains(u.geometry, ST_Centroid(s.geometry))

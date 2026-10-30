@@ -1,18 +1,15 @@
 """Non-map charts.
 
     from crime import time_series, seasonal_plot, correlation_heatmap, moran_scatter
-    from crime import emergence_timeline, emergence_curve, cube_profiles
+    from crime import cube_profiles, cluster_profiles
 
-Space-time / EHSA 2D views (the information-dense companions to the 3D cubes):
-  ``emergence_timeline(ehsa)``  — the whole EHSA result in one heatmap
-  ``emergence_curve(ehsa)``     — hot / cold unit count over time
+Space-time 2D view (the information-dense companion to the 3D cubes):
   ``cube_profiles(cube, units)`` — per-unit count + Gi* trajectory + trend
 
 Consumes: ``TrendResult`` (time_series, seasonal_plot), ``CorrelationResult``
-(correlation/clustered heatmaps), ``MoranResult`` (moran_scatter),
-``EhsaResult`` (emergence_*), a cube (cube_profiles), ``TSClusterResult``
-(cluster_profiles). Emergence counts / confidence bins come from
-:mod:`crime.esri.transitions`.
+(correlation/clustered heatmaps), ``MoranResult`` (moran_scatter), a cube
+(+ optional ``EhsaResult``; cube_profiles), ``TSClusterResult``
+(cluster_profiles).
 
 All return ``(fig, ax)``.
 """
@@ -21,7 +18,6 @@ import numpy as np
 import pandas as pd
 from libpysal.weights import lag_spatial
 
-from crime.esri.local import GI_BIN_ORDER
 from crime.viz.frame import finish
 from crime.viz.style import PlotStyle
 
@@ -211,95 +207,8 @@ def seasonal_plot(trend_result, *, title: str = "", style: PlotStyle = PlotStyle
 # --------------------------------------------------------------------------- #
 #  space-time cube / EHSA — 2D information-dense views
 # --------------------------------------------------------------------------- #
-_GI_ORDER = list(GI_BIN_ORDER)          # cold 99% ... ns ... hot 99%
-_CAT_ORDER = ["new", "consecutive", "intensifying", "persistent", "diminishing",
-              "sporadic", "oscillating", "historical"]
-
-
 def _period_str(cols) -> list[str]:
     return [c.strftime("%Y-%m") if hasattr(c, "strftime") else str(c) for c in cols]
-
-
-def emergence_timeline(ehsa, *, max_units: int = 150, title: str = "",
-                       style: PlotStyle = PlotStyle()):
-    """The whole EHSA result in one panel. Rows = units that carry a pattern
-    (grouped hot-family then cold-family, ordered by first significant slice);
-    x = time; cell colour = the unit's Gi\\* confidence bin in that slice. Scale-
-    free — reads the same for sectors, grid cells or street segments.
-    Keeps only the first ``max_units`` rows after sorting; pass a larger value
-    or split across frames if the patterned-unit count exceeds this limit."""
-    from crime.esri.transitions import confidence_bins
-
-    style.apply()
-    z = ehsa.z_matrix
-    cat = ehsa.gdf.set_index(ehsa.gdf.columns[0] if "unit_id" not in ehsa.gdf
-                             else "unit_id")["category"].reindex(z.index).fillna("no pattern")
-    keep = cat[cat != "no pattern"].index
-    if len(keep) == 0:                                    # fall back to any ever-significant unit
-        keep = z.index[(np.abs(z.values) >= 1.645).any(1)]
-    if len(keep) == 0:
-        fig, ax = plt.subplots(figsize=(style.figsize[0], 2))
-        ax.text(0.5, 0.5, "no significant units", ha="center", va="center")
-        ax.set_axis_off()
-        return finish(fig), ax
-    bins = confidence_bins(ehsa, keep)
-    lvl = np.vectorize({b: i for i, b in enumerate(_GI_ORDER)}.get)(bins)
-
-    fam = np.where(cat.loc[keep].str.contains("cold"), 1, 0)                       # hot first
-    patt = cat.loc[keep].str.replace(" hotspot", "").str.replace(" coldspot", "")
-    prank = patt.map({p: i for i, p in enumerate(_CAT_ORDER)}).fillna(99).values
-    first_hot = np.where((lvl >= 4).any(1), (lvl >= 4).argmax(1),
-                         np.where((lvl <= 2).any(1), (lvl <= 2).argmax(1), z.shape[1]))
-    order = np.lexsort((first_hot, prank, fam))
-    lvl, rows = lvl[order][:max_units], keep[order][:max_units]
-    if len(keep) > max_units:
-        print(f"emergence_timeline: {len(keep)} patterned units, showing top {max_units} "
-              f"by onset order (pass max_units={len(keep)} to show all)")
-
-    from matplotlib.colors import BoundaryNorm, ListedColormap
-    cmap = ListedColormap([style.gi_bin_palette[b] for b in _GI_ORDER])
-    fig, ax = plt.subplots(figsize=(style.figsize[0], min(style.figsize[1], 0.16 * len(rows) + 1.5)))
-    ax.imshow(lvl, aspect="auto", cmap=cmap, norm=BoundaryNorm(range(len(_GI_ORDER) + 1), cmap.N),
-              interpolation="nearest")
-    per = _period_str(z.columns)
-    tk = np.unique(np.linspace(0, len(per) - 1, min(8, len(per)), dtype=int))
-    ax.set_xticks(tk, [per[i] for i in tk], rotation=45, ha="right", fontsize=style.font_size - 3)
-    ax.set_yticks(range(len(rows)),
-                  rows if len(rows) <= 40 else [""] * len(rows), fontsize=style.font_size - 4)
-    ax.set_ylabel(f"{len(rows)} units with a pattern (hot then cold, by onset)")
-    hot_n = int((~cat.loc[rows].str.contains('cold')).sum())
-    if 0 < hot_n < len(rows):
-        ax.axhline(hot_n - 0.5, color="black", lw=0.8)
-    import matplotlib.patches as mp
-    ax.legend(handles=[mp.Patch(color=style.gi_bin_palette[b], label=b) for b in _GI_ORDER],
-              loc="center left", bbox_to_anchor=(1.01, 0.5), fontsize=style.font_size - 3)
-    ax.set_title(title or "EHSA emergence timeline", fontsize=style.title_size)
-    finish(fig)
-    fig.subplots_adjust(right=0.80)
-    return fig, ax
-
-
-def emergence_curve(ehsa, *, alpha_z: float = 1.96, title: str = "",
-                    style: PlotStyle = PlotStyle()):
-    """Number of significantly hot (and cold) units per time slice, over time —
-    are hot spots spreading or concentrating? Uses ``ehsa``'s actual hot/cold
-    significance masks (matching whatever fdr/permutation settings the run used)
-    when available; falls back to a raw ``|z| >= alpha_z`` threshold otherwise."""
-    from crime.esri.transitions import significant_unit_counts
-
-    style.apply()
-    z = ehsa.z_matrix
-    per = _period_str(z.columns)
-    n_hot, n_cold = significant_unit_counts(ehsa, z_crit=alpha_z)
-    fig, ax = plt.subplots(figsize=(style.figsize[0], style.figsize[1] * 0.45))
-    ax.plot(per, n_hot, "-o", color="#d7191c", lw=1.6, label=f"hot (|z| ≥ {alpha_z:g})")
-    ax.plot(per, n_cold, "-o", color="#2c7bb6", lw=1.6, label="cold")
-    tk = np.unique(np.linspace(0, len(per) - 1, min(10, len(per)), dtype=int))
-    ax.set_xticks(tk, [per[i] for i in tk], rotation=45, ha="right", fontsize=style.font_size - 2)
-    ax.set_ylabel("significant units")
-    ax.legend(framealpha=0.9)
-    ax.set_title(title or "Hot / cold spot count over time", fontsize=style.title_size)
-    return finish(fig), ax
 
 
 def cube_profiles(cube, units, *, ehsa=None, weights: str = "queen", title: str = "",

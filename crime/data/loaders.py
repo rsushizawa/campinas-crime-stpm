@@ -10,7 +10,6 @@ filter, so every downstream result can say what it was computed on.
 Supports:
     ``load_sectors``   2022 IBGE census tracts (``vw_sector_features``)
     ``load_grid``      IBGE statistical grid     (``vw_grid_features``)
-    ``load_segments``  OSM street segments       (:mod:`crime.data.segments`)
 
 Derived columns added at load time on polygon supports:
     ``crime_rate``     crimes per 1,000 residents (NaN where population is 0)
@@ -100,8 +99,8 @@ def load_crime_points(
     db: DBConfig | None = None,
     source=None,
 ) -> gpd.GeoDataFrame:
-    """Geocoded crime occurrences as points (EPSG:4326) — the case set for the
-    spatial case-control models.
+    """Geocoded crime occurrences as points (EPSG:4326) — for point-pattern
+    analyses and maps.
 
     Columns: ``geometry``, ``data_ocorrencia``, ``crime_slug``, ``crime_group``,
     ``cd_setor``, ``grid_id``.

@@ -1,13 +1,12 @@
 """Spatial and space-time weights — the neighbourhood every ESRI statistic uses.
 
 Method
-    Row-standardised contiguity / k-nearest-neighbour weights (libpysal), a
-    street-network analogue (segments sharing an endpoint), and a block
-    space-time weights matrix for the space-time Gi* neighbourhood.
+    Row-standardised contiguity / k-nearest-neighbour weights (libpysal) and a
+    block space-time weights matrix for the space-time Gi* neighbourhood.
 Reference
-    libpysal ``Queen`` / ``Rook`` / ``KNN`` (Rey & Anselin 2007, PySAL);
-    network adjacency and the space-time block matrix are project-specific
-    choices (see :func:`space_time_weights`).
+    libpysal ``Queen`` / ``Rook`` / ``KNN`` (Rey & Anselin 2007, PySAL); the
+    space-time block matrix is a project-specific choice (see
+    :func:`space_time_weights`).
 ESRI tool mirrored
     "Generate Spatial Weights Matrix" / the neighbourhood options of
     "Create Space Time Cube" + "Emerging Hot Spot Analysis".
@@ -16,15 +15,10 @@ Inputs → Outputs
     spatial ``W`` + number of time bins → sparse ``(n·T) x (n·T)`` matrix.
 
     w = spatial_weights(ds.metric(), kind="queen")
-    w = spatial_weights(segments, kind="network")      # LineString rows
-    w = network_weights(segments)                       # same thing, explicit
+    w = spatial_weights(ds.metric(), kind="knn", k=8)
     w = resolve_weights(gdf, "knn")                     # what every statistic calls
 
-``kind`` is one of "queen", "rook", "knn", "network" ("segment" is an alias
-for "network"). "network" treats LineString rows as street segments: two
-segments are neighbours when they share an endpoint (the network analogue of
-rook), optionally expanded to ``order`` topological hops (lower orders
-included).
+``kind`` is one of "queen", "rook", "knn".
 """
 from __future__ import annotations
 
@@ -32,74 +26,24 @@ import geopandas as gpd
 import libpysal.weights as lw
 import numpy as np
 
-_ALIASES = {"segment": "network"}
-
-
 # --------------------------------------------------------------------------- #
-#  segment topology
+#  builders (registry: kind -> (gdf, k) -> W, before row-standardising)
 # --------------------------------------------------------------------------- #
-def endpoint_index(segments: gpd.GeoDataFrame) -> dict[object, list[int]]:
-    """endpoint id -> row positions of the segments meeting there. Uses the OSM
-    ``u`` / ``v`` node ids when ``street_segments`` provides them (exact), else
-    falls back to rounding the endpoint coordinates.
-
-    Shared by network weights, NKDE and segment structure so they always agree
-    on what counts as a junction."""
-    idx: dict[object, list[int]] = {}
-    if {"u", "v"}.issubset(segments.columns):
-        for i, (u, v) in enumerate(zip(segments["u"].to_numpy(), segments["v"].to_numpy())):
-            idx.setdefault(u, []).append(i)
-            idx.setdefault(v, []).append(i)
-    else:
-        for i, geom in enumerate(segments.geometry):
-            for x, y in (geom.coords[0], geom.coords[-1]):
-                idx.setdefault((round(x, 2), round(y, 2)), []).append(i)
-    return idx
-
-
-def _endpoint_adjacency(gdf: gpd.GeoDataFrame) -> lw.W:
-    """libpysal ``W`` from :func:`endpoint_index`."""
-    endpoint_rows = endpoint_index(gdf)
-    neighbors: dict[int, set[int]] = {i: set() for i in range(len(gdf))}
-    for rows in endpoint_rows.values():
-        for i in rows:
-            neighbors[i].update(j for j in rows if j != i)
-    return lw.W({i: sorted(js) for i, js in neighbors.items()}, silence_warnings=True)
-
-
-# --------------------------------------------------------------------------- #
-#  builders (registry: kind -> (gdf, k, order) -> W, before row-standardising)
-# --------------------------------------------------------------------------- #
-def _network(gdf, k, order):
-    w = _endpoint_adjacency(gdf)
-    if order > 1:
-        w = lw.higher_order(w, order, lower_order=True, silence_warnings=True)
-    return w
-
-
 _BUILDERS = {
-    "queen": lambda gdf, k, order: lw.Queen.from_dataframe(gdf, use_index=False),
-    "rook": lambda gdf, k, order: lw.Rook.from_dataframe(gdf, use_index=False),
-    "knn": lambda gdf, k, order: lw.KNN.from_dataframe(gdf, k=k),
-    "network": _network,
+    "queen": lambda gdf, k: lw.Queen.from_dataframe(gdf, use_index=False),
+    "rook": lambda gdf, k: lw.Rook.from_dataframe(gdf, use_index=False),
+    "knn": lambda gdf, k: lw.KNN.from_dataframe(gdf, k=k),
 }
 
 
-def spatial_weights(
-    gdf: gpd.GeoDataFrame, *, kind: str = "queen", k: int = 5, order: int = 1
-) -> lw.W:
-    """Row-standardised weights of ``kind`` ("queen" | "rook" | "knn" | "network")."""
-    kind = _ALIASES.get(kind, kind)
+def spatial_weights(gdf: gpd.GeoDataFrame, *, kind: str = "queen", k: int = 5) -> lw.W:
+    """Row-standardised weights of ``kind`` ("queen" | "rook" | "knn"; ``k``
+    neighbours for "knn", measured between unit centroids)."""
     if kind not in _BUILDERS:
-        raise ValueError(f"Unknown kind '{kind}'. Use: queen, rook, knn, network.")
-    w = _BUILDERS[kind](gdf, k, order)
+        raise ValueError(f"Unknown kind '{kind}'. Use: {', '.join(_BUILDERS)}.")
+    w = _BUILDERS[kind](gdf, k)
     w.transform = "r"
     return w
-
-
-def network_weights(segments: gpd.GeoDataFrame, *, order: int = 1) -> lw.W:
-    """Topological weights over street segments (shared-endpoint adjacency)."""
-    return spatial_weights(segments, kind="network", order=order)
 
 
 def resolve_weights(gdf, weights):

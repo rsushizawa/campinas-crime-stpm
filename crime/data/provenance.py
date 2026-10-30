@@ -18,7 +18,7 @@ from pathlib import Path
 
 _LIBS = (
     "numpy", "pandas", "scipy", "scikit-learn", "geopandas", "shapely", "libpysal",
-    "esda", "statsmodels", "xgboost", "lightgbm", "catboost", "shap", "osmnx", "networkx",
+    "esda", "statsmodels",
 )
 
 
@@ -55,7 +55,7 @@ def provenance(extra: dict | None = None) -> dict:
 
     db = DBConfig()
     return {
-        "ic_crime_version": __version__,
+        "package_version": __version__,
         "git_commit": _git_commit(),
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "python": sys.version.split()[0],

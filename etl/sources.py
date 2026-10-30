@@ -44,7 +44,7 @@ _IBGE_SETORES_CSV = (
     "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/"
     "Agregados_por_Setores_Censitarios/Agregados_por_Setor_csv/"
 )
-_UA = {"User-Agent": "ic-crime-etl"}
+_UA = {"User-Agent": "campinas-crime-stpm-etl"}
 _REDACTED = "VEDAÇÃO DA DIVULGAÇÃO DOS DADOS RELATIVOS"
 
 

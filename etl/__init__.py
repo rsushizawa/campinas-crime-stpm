@@ -1,4 +1,4 @@
-"""IC-Crime ETL — flat extract functions + a linear rebuild script.
+"""campinas-crime-stpm ETL — flat extract functions + a linear rebuild script.
 
     from etl import sources, taxonomy
     from etl.postgis import write_gdf, write_df

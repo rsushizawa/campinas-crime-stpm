@@ -23,11 +23,7 @@ Hashes were computed on 2026-10-22. "Status" is the current use by
 | `inputs/data/Painel_IBGE_2022.csv` | IBGE Censo 2022, Alfabetização (values verified equal); compiler unverified | literacy `V00900`, `V00901` | used | [ibge_painel_literacy_2022.md](../docs/data/ibge_painel_literacy_2022.md) |
 | `inputs/data/qg_810_endereco_Munic3509502.json` | IBGE CNEFE 2022 | address points, `COD_ESPECIE` | used | [ibge_cnefe_2022.md](../docs/data/ibge_cnefe_2022.md) |
 | `inputs/data/map.geojson` | Campinas UTB (publisher unverified); **2010 Census attributes** | 93 UTB polygons (overlay); `rendatemei` is a count | used | [campinas_utb.md](../docs/data/campinas_utb.md) |
-| `inputs/data/osm/campinas_drive.graphml` | OpenStreetMap via OSMnx 2.0.5 (2026-08-06) | street network | used | [osm_campinas_drive.md](../docs/data/osm_campinas_drive.md) |
 | `outputs/board/tract_counts.parquet` | assembled: property crime, tract × month | primary EHSA input | generated | [property_tract_month_cube.md](../docs/data/property_tract_month_cube.md) |
-
-`outputs/models/*.joblib` are fitted models from the scrapped modelling arm.
-They are outputs, not data, and are not documented here.
 
 ## Acquire and clean (scripted, #13)
 
@@ -81,5 +77,4 @@ fea6e2b2439eeb167c6fa9c136ed7cb13ebcb06f4c875d634e3e2578c668a48d  inputs/data/ge
 88d401518f62fae14c334fc750a4ef752719907982a767bd73d0c2d7849f6b6f  inputs/data/Painel_IBGE_2022.csv
 f871b5273a1a176f40a85bfd1cec690b67aaf70f6c934143b6a8028b5ec9f2fd  inputs/data/qg_810_endereco_Munic3509502.json
 5dc6343b73db910e726a8047550983024a3b062d7e903296820a9a9844a2e39e  inputs/data/map.geojson
-fed6538d670d4ea8018d523827b1da5c52d5a6b22680e210752644960201b5af  inputs/data/osm/campinas_drive.graphml
 ```

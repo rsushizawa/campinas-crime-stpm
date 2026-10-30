@@ -1,14 +1,13 @@
-"""3D space-time cube plots — matplotlib (static) and plotly (interactive).
+"""3D space-time cube plots (matplotlib) and per-slice Gi* maps.
 
-    from crime import interactive_cube, interactive_ehsa_cube, ehsa_slice_maps
-    fig = interactive_cube(cube_result, ds)              # extruded-prism cube + time slider
-    fig = interactive_ehsa_cube(ehsa_result, ds)         # voxels over an EHSA-category ground
+    from crime import space_time_cube_3d, ehsa_slice_maps, interactive_slice_map
+    fig, ax = space_time_cube_3d(cube_result)            # one marker column per unit
     fig, axes = ehsa_slice_maps(ehsa_result, ds)         # small-multiple Gi_Bin choropleths
+    fig = interactive_slice_map(ehsa_result)             # plotly, one animation frame per slice
 
-Consumes: a cube (``CubeResult``: interactive_cube, space_time_cube_3d),
-``SpaceTimeLisaResult`` (the LISA cubes), ``EhsaResult`` (interactive_ehsa_cube,
-interactive_slice_map, ehsa_slice_maps, ehsa_transition_sankey). Gi_Bin classes
-and window transitions come from :mod:`crime.esri`.
+Consumes: a cube (``CubeResult``: space_time_cube_3d), ``SpaceTimeLisaResult``
+(space_time_lisa_cube), ``EhsaResult`` (interactive_slice_map,
+ehsa_slice_maps). Gi_Bin classes come from :mod:`crime.esri.local`.
 
 matplotlib functions return ``(fig, ax)``; plotly functions return a ``Figure``.
 """
@@ -18,210 +17,27 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.colors import LinearSegmentedColormap, LogNorm, to_hex
+from matplotlib.colors import LinearSegmentedColormap, LogNorm
 
 from crime.core.config import CRS_METRIC
 from crime.esri.local import gi_confidence_bin
 from crime.viz.frame import finish, period_labels
 from crime.viz.style import PlotStyle
-from crime.viz.voxel import VoxelMesh, time_slider
 
 _LISA_ORDER = ["HH", "HL", "LH", "LL"]
 
 
-def _decimate(result, top_n):
-    """Return a shallow view of a cube result restricted to the ``top_n`` busiest
-    units (by total count) — keeps the 3D cubes renderable at grid / segment
-    scale. ``None`` or a result smaller than ``top_n`` is passed through."""
-    wide = getattr(result, "wide", None)
-    if top_n is None or wide is None or len(wide) <= top_n:
-        return result
-    keep = wide.sum(axis=1).nlargest(top_n).index
-    from types import SimpleNamespace
-    gdf = result.gdf
-    gid = "unit_id" if "unit_id" in gdf else gdf.index
-    gdf_keep = gdf.set_index(gid).loc[keep].reset_index(drop=("unit_id" not in gdf))
-    return SimpleNamespace(wide=wide.loc[keep], gdf=gdf_keep,
-                           freq=getattr(result, "freq", "ME"))
-
-
-def _cube_scene_layout(fig, periods, z_scale, title, style, *, trace_bins=None):
-    tick_idx = np.unique(np.linspace(0, len(periods) - 1, min(6, len(periods)), dtype=int))
-    layout = dict(
-        title=title, template="simple_white",
-        width=int(style.figsize[0] * 100), height=int(style.figsize[1] * 100),
-        scene=dict(
-            xaxis=dict(visible=False), yaxis=dict(visible=False),
-            zaxis=dict(title="", tickvals=(tick_idx * z_scale).tolist(),
-                       ticktext=[periods[i] for i in tick_idx]),
-            aspectmode="data",
-        ),
-    )
-    if trace_bins is not None:
-        layout["sliders"] = time_slider(trace_bins, periods)
-    fig.update_layout(**layout)
-    return fig
-
-
-def _log_facecolors(vals, style):
-    strength = np.log10(vals) / max(np.log10(vals.max()), 1e-9)
-    cmap = plt.get_cmap(style.cmap)
-    return cmap, np.array([to_hex(c) for c in cmap(strength)])
-
-
-def _log_colorbar(cmap, vals, title):
-    import plotly.graph_objects as go
-
-    return go.Scatter3d(
-        x=[None], y=[None], z=[None], mode="markers",
-        marker=dict(color=[0, 1],
-                    colorscale=[[i / 10, to_hex(cmap(i / 10))] for i in range(11)],
-                    showscale=True,
-                    colorbar=dict(title=title,
-                                  tickvals=(np.log10([1, 3, 10, 30, 100])
-                                            / max(np.log10(vals.max()), 1e-9)),
-                                  ticktext=["1", "3", "10", "30", "100"])),
-        hoverinfo="none", showlegend=False)
+def _unit_sides(gdf, crs_metric: str = CRS_METRIC) -> np.ndarray:
+    """Marker side per unit — sqrt of the polygon area, clipped so outlier
+    units cannot dwarf the rest."""
+    sides = np.sqrt(gdf.to_crs(crs_metric).geometry.area.values)
+    median = np.median(sides)
+    return np.clip(sides, 0.5 * median, 2.0 * median)
 
 
 # --------------------------------------------------------------------------- #
-#  interactive plotly cubes
+#  interactive per-slice map
 # --------------------------------------------------------------------------- #
-def interactive_cube(result, dataset=None, *, min_count: int = 1, gap: float = 0.08,
-                     top_n: int | None = 1500, title: str = "", style: PlotStyle = PlotStyle()):
-    """Each unit's real footprint extruded per time bin, stacked into layers
-    over a flat ground, coloured by log crime count, with a cumulative slider.
-    ``top_n`` keeps only the busiest N units — set ``None`` for all (slow /
-    unreadable at grid or street-segment scale)."""
-    import plotly.graph_objects as go
-
-    result = _decimate(result, top_n)
-    wide = result.wide
-    caps, walls = VoxelMesh.prism_template(result.gdf)
-    counts = wide.values
-    unit_idx, t_idx = np.nonzero(counts >= min_count)
-    vals = counts[unit_idx, t_idx]
-    cmap, facecolor = _log_facecolors(vals, style)
-
-    periods = period_labels(wide.columns)
-    units = wide.index.values[unit_idx]
-    hover = np.array([f"{u}<br>{periods[t]}<br>{v} crimes"
-                      for u, t, v in zip(units, t_idx, vals)])
-
-    bounds = result.gdf.to_crs(CRS_METRIC).total_bounds
-    z_scale = (bounds[2] - bounds[0]) / max(wide.shape[1], 1)
-    traces, trace_bins = [], []
-    for t in range(wide.shape[1]):
-        sel = t_idx == t
-        if not sel.any():
-            continue
-        mesh = VoxelMesh.build_prisms(caps, walls, unit_idx[sel], t_idx[sel] * z_scale,
-                                      z_scale * (1 - gap), facecolor[sel], hover[sel])
-        traces.append(go.Mesh3d(name=periods[t], showlegend=False, **mesh))
-        trace_bins.append(t)
-
-    ground = VoxelMesh.ground(caps, z=-0.6 * z_scale)
-    fig = go.Figure(traces + [go.Mesh3d(**ground), _log_colorbar(cmap, vals, "Crimes per bin")])
-    trace_bins += [None, None]
-    return _cube_scene_layout(fig, periods, z_scale, title or "Space-time cube", style,
-                              trace_bins=trace_bins)
-
-
-def interactive_lisa_cube(result, dataset=None, *, quadrants=("HH", "HL", "LH", "LL"),
-                          gap: float = 0.08, title: str = "", style: PlotStyle = PlotStyle()):
-    """Full-size voxels for the significant bins, coloured by LISA quadrant."""
-    import plotly.graph_objects as go
-
-    labels = result.labels
-    centroids = result.gdf.to_crs(CRS_METRIC).geometry.centroid
-    sides = VoxelMesh.unit_sides(result.gdf)
-    x_unit, y_unit = centroids.x.values, centroids.y.values
-    periods = period_labels(labels.columns)
-    z_scale = (x_unit.max() - x_unit.min()) / max(labels.shape[1], 1)
-
-    traces = []
-    for quad in [q for q in _LISA_ORDER if q in quadrants]:
-        unit_idx, t_idx = np.nonzero(labels.values == quad)
-        if len(unit_idx) == 0:
-            continue
-        hover = np.array([f"{labels.index[u]}<br>{periods[t]}<br>{quad}"
-                          for u, t in zip(unit_idx, t_idx)])
-        mesh = VoxelMesh.build(
-            x_unit[unit_idx], y_unit[unit_idx], t_idx * z_scale,
-            sides[unit_idx] * (1 - gap), sides[unit_idx] * (1 - gap), z_scale * (1 - gap),
-            np.array([style.lisa_palette[quad]] * len(unit_idx)), hover)
-        traces.append(go.Mesh3d(name=quad, showlegend=True, **mesh))
-
-    fig = go.Figure(traces)
-    fig.update_layout(legend=dict(itemsizing="constant"))
-    return _cube_scene_layout(fig, periods, z_scale, title or "Space-time LISA", style)
-
-
-def interactive_ehsa_cube(result, dataset=None, *, value_matrix=None, gap: float = 0.08,
-                          cube: bool = False, title: str = "", style: PlotStyle = PlotStyle()):
-    """Voxel columns (coloured by value, log scale) above an EHSA-category
-    choropleth ground; one ground trace per category (legend-toggleable)."""
-    import plotly.graph_objects as go
-
-    from crime.esri.cube import space_time_cube
-
-    gdf = result.gdf
-    periods = period_labels(result.z_matrix.columns)
-    bounds = gdf.to_crs(CRS_METRIC).total_bounds
-    z_scale = (bounds[2] - bounds[0]) / max(len(periods), 1)
-
-    if value_matrix is None:
-        if dataset is None:
-            raise ValueError("interactive_ehsa_cube needs dataset or value_matrix.")
-        c = space_time_cube(dataset, freq=result.freq)
-        value_matrix = c.wide.reindex(index=gdf[dataset.id_col],
-                                      columns=result.z_matrix.columns, fill_value=0)
-    values = value_matrix.values
-
-    proj = gdf.to_crs(CRS_METRIC).geometry.centroid
-    x, y = proj.x.values, proj.y.values
-    side = VoxelMesh.unit_sides(gdf) * (1 - gap)
-
-    u_idx, t_idx = np.nonzero(values > 0)
-    vals = values[u_idx, t_idx]
-    cmap, facecolor = _log_facecolors(vals, style)
-    unit_labels = value_matrix.index.values[u_idx]
-    hover = np.array([f"{u}<br>{periods[t]}<br>{v:g}"
-                      for u, t, v in zip(unit_labels, t_idx, vals)])
-
-    traces, trace_bins = [], []
-    for t in range(len(periods)):
-        sel = t_idx == t
-        if not sel.any():
-            continue
-        mesh = VoxelMesh.build(
-            x[u_idx[sel]], y[u_idx[sel]], t_idx[sel] * z_scale + 0.5 * z_scale,
-            side[u_idx[sel]], side[u_idx[sel]], z_scale * (1 - gap),
-            facecolor[sel], hover[sel])
-        traces.append(go.Mesh3d(name=periods[t], showlegend=False, **mesh))
-        trace_bins.append(t)
-
-    caps, _ = VoxelMesh.prism_template(gdf, tol_frac=0.0)
-    palette = style.ehsa_palette
-    cats = gdf["category"].values
-    for cat in [c for c in palette if c in cats]:
-        sub_caps = [c for c, keep in zip(caps, cats == cat) if keep]
-        traces.append(go.Mesh3d(name=cat, showlegend=True,
-                                **VoxelMesh.ground(sub_caps, color=palette[cat], z=0)))
-        trace_bins.append(None)
-
-    traces.append(_log_colorbar(cmap, vals, "Value per bin"))
-    trace_bins.append(None)
-
-    fig = go.Figure(traces)
-    fig.update_layout(legend=dict(itemsizing="constant"))
-    fig = _cube_scene_layout(fig, periods, z_scale, title or "EHSA space-time cube", style,
-                             trace_bins=trace_bins)
-    if cube:
-        fig.update_layout(scene=dict(aspectmode="cube"))
-    return fig
-
-
 def interactive_slice_map(result, dataset=None, *, simplify: float = 20.0, title: str = "",
                           style: PlotStyle = PlotStyle()):
     """Interactive choropleth with a per-interval animation frame, units
@@ -266,7 +82,7 @@ def space_time_cube_3d(result, dataset=None, *, min_count: int = 1, elev: float 
     style.apply()
     wide = result.wide
     centroids = result.gdf.to_crs(CRS_METRIC).geometry.centroid
-    sides = VoxelMesh.unit_sides(result.gdf)
+    sides = _unit_sides(result.gdf)
     x_unit, y_unit = centroids.x.values, centroids.y.values
 
     counts = wide.values
@@ -312,7 +128,7 @@ def space_time_lisa_cube(result, dataset=None, *, elev: float = 25, azim: float 
     style.apply()
     labels = result.labels
     centroids = result.gdf.to_crs(CRS_METRIC).geometry.centroid
-    sides = VoxelMesh.unit_sides(result.gdf)
+    sides = _unit_sides(result.gdf)
     x_unit, y_unit = centroids.x.values, centroids.y.values
 
     fig = plt.figure(figsize=style.figsize)
@@ -377,46 +193,3 @@ def ehsa_slice_maps(result, dataset=None, *, ncols: int = 4, max_slices: int = 3
                fontsize=style.font_size - 2)
     fig.suptitle((title or "Gi* hot & cold spots per interval") + note, fontsize=style.title_size)
     return finish(fig), axes
-
-
-# --------------------------------------------------------------------------- #
-#  EHSA transitions — alluvial / Sankey
-# --------------------------------------------------------------------------- #
-def ehsa_transition_sankey(result, *, window: int = 3, title: str = "",
-                           style: PlotStyle = PlotStyle()):
-    """How units move between hot / none / cold over successive rolling windows.
-    ``result`` is an ``EhsaResult`` (uses its ``z_matrix``). Returns a Plotly
-    ``Figure`` — one node column per window, links = unit counts."""
-    import plotly.graph_objects as go
-
-    from crime.esri.transitions import rolling_states, transition_counts
-
-    state = rolling_states(result.z_matrix.values, window=window)   # 0 cold, 1 none, 2 hot
-    n_win = state.shape[1]
-
-    from matplotlib.colors import to_rgba
-
-    def _rgba(hexc, a):
-        r, g, b, _ = to_rgba(hexc)
-        return f"rgba({int(r*255)},{int(g*255)},{int(b*255)},{a})"
-
-    names = ["cold", "none", "hot"]
-    colors = {0: style.lisa_palette["LL"], 1: "#d9d9d9", 2: style.lisa_palette["HH"]}
-    node_label, node_color, idx = [], [], {}
-    for k in range(n_win):
-        for s in range(3):
-            idx[(k, s)] = len(node_label)
-            node_label.append(f"W{k + 1} {names[s]}")
-            node_color.append(colors[s])
-
-    src, tgt, val, lcol = [], [], [], []
-    for (k, a, b), c in transition_counts(state).items():
-        src.append(idx[(k, a)]); tgt.append(idx[(k + 1, b)]); val.append(c)
-        lcol.append(_rgba(colors[b], 0.45))
-    fig = go.Figure(go.Sankey(
-        node=dict(label=node_label, color=node_color, pad=14, thickness=14),
-        link=dict(source=src, target=tgt, value=val, color=lcol)))
-    fig.update_layout(title=title or f"EHSA transitions ({window}-slice windows)",
-                      template="simple_white", font_size=style.font_size,
-                      width=int(style.figsize[0] * 110), height=int(style.figsize[1] * 90))
-    return fig

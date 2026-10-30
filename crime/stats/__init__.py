@@ -1,8 +1,8 @@
-"""Method-agnostic statistics shared by the ESRI and GeoShapley arms.
+"""Method-agnostic statistics shared across the analysis.
 
     eda          descriptive statistics, temporal trends, STL
     correlation  feature / crime-type correlation, VIF collinearity
-    validation   targeting budgets, capture / PAI, bootstrap, label agreement
+    validation   label agreement (Jaccard, Cohen's kappa, MCC)
 
 Submodules are imported on demand.
 """

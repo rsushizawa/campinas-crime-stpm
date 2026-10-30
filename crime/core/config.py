@@ -24,17 +24,14 @@ __version__ = "0.2.0"          # the package version (single source; re-exported
 # ---------------------------------------------------------------- paths --------
 # Layout follows Alexander (2023), *Telling Stories with Data*, ch. 3:
 #   inputs/data/  raw inputs, never edited (Git LFS)
-#   outputs/      everything the scripted stages produce (git-ignored, rebuilt by `make all`)
+#   outputs/      everything the scripted stages produce (git-ignored, rebuilt by `make`)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INPUTS_DIR = REPO_ROOT / "inputs" / "data"
 DATA_DIR = INPUTS_DIR                      # backwards-compatible alias: the raw-input tree
 OUTPUTS_DIR = REPO_ROOT / "outputs"
 OUTPUT_DATA_DIR = OUTPUTS_DIR / "data"     # stage outputs: acquired CSV, cleaned bulletins, funnel
-BOARD_DIR = OUTPUTS_DIR / "board"          # authoritative board-review run (scripts/04_analyse)
 FIGURES_DIR = OUTPUTS_DIR / "figures"
-OSM_DIR = INPUTS_DIR / "osm"
 GEOBR_CACHE = INPUTS_DIR / "geobr"
-MODELS_DIR = OUTPUTS_DIR / "models"        # fitted models of the scrapped modelling arm (tracked, LFS)
 RESULTS_DIR = OUTPUTS_DIR / "artifacts"    # crime.data.artifacts cache (was data/results/)
 
 # Raw SSP-SP inputs (read by scripts/01_acquire only).
@@ -94,9 +91,7 @@ class Settings:
 
     db: DBConfig = field(default_factory=DBConfig)
     data_dir: Path = DATA_DIR
-    osm_dir: Path = OSM_DIR
     results_dir: Path = RESULTS_DIR
-    models_dir: Path = MODELS_DIR
     crs_metric: str = CRS_METRIC
 
     @classmethod

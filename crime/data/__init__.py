@@ -3,8 +3,6 @@
     query      ``CrimeQuery`` — the crime filter and its SQL ``WHERE`` clause
     postgis    ``PostGISSource`` — the default :class:`~crime.core.protocols.DataSource`
     loaders    ``load_sectors`` / ``load_grid`` / ``load_crime_points`` / ...
-    osm        OpenStreetMap street graph and segments
-    segments   ``load_segments`` — crimes snapped to street segments
     spec       ``DatasetSpec`` — fluent builder over the loaders
     catalog    ``DEFAULT_FEATURES`` and the pre-registered crime-slug scopes
     artifacts  result persistence (``save_result`` / ``load_result`` / ``cached``)
@@ -12,5 +10,5 @@
     cleaning   raw-file cleaning: occurrence-date window, tract join, IBGE 2022 income,
                literacy, CNEFE commerce by point-in-polygon
 
-Submodules are imported on demand (``osm`` / ``segments`` need osmnx).
+Submodules are imported on demand.
 """

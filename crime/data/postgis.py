@@ -80,15 +80,6 @@ class PostGISSource:
             self.engine, params=params, geom_col="geometry", parse_dates=["data_ocorrencia"],
         )
 
-    def crime_coordinates(self, query: CrimeQuery) -> pd.DataFrame:
-        """Crimes with raw lat/long, for snapping to street segments."""
-        where, params = query.where("lat IS NOT NULL AND long IS NOT NULL")
-        return pd.read_sql(
-            text("SELECT id_crime, data_ocorrencia, hora_ocorrencia, periodo, crime_slug, "
-                 f"crime_group, lat, long FROM fato_crimes {where}"),
-            self.engine, params=params, parse_dates=["data_ocorrencia"],
-        )
-
     def cnefe_points(self, cod_especie: tuple[int, ...]) -> gpd.GeoDataFrame:
         codes = ", ".join(str(int(c)) for c in cod_especie)
         return gpd.read_postgis(

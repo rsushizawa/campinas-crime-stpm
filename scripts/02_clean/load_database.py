@@ -1,4 +1,4 @@
-"""Rebuild the IC-Crime PostGIS database, top to bottom.
+"""Rebuild the campinas-crime-stpm PostGIS database, top to bottom.
 
     python scripts/02_clean/load_database.py              # uses PG* env vars / defaults
     python scripts/02_clean/load_database.py --database crime_db --user admin --password ...
@@ -27,7 +27,7 @@ _SQL_DIR = REPO_ROOT / "database"
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Rebuild the IC-Crime PostGIS database.")
+    ap = argparse.ArgumentParser(description="Rebuild the campinas-crime-stpm PostGIS database.")
     d = DBConfig()
     ap.add_argument("--host", default=d.host)
     ap.add_argument("--port", type=int, default=d.port)

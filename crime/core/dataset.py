@@ -3,10 +3,10 @@
 A ``Dataset`` is the single input to every analysis function (the mrlib
 ``Dataset`` idea: data + header travel together):
 
-    gdf      one row per spatial unit (sector | grid | segment), keyed by
+    gdf      one row per spatial unit (sector | grid), keyed by
              ``id_col`` with the analysed quantity in ``value_col``
     events   optional per-crime rows (``unit_id``, ``data_ocorrencia`` ...)
-             — needed by the space-time cube and network KDE
+             — needed by the space-time cube
     overlay  optional boundary polygons drawn on maps
     meta     :class:`~crime.core.metadata.DatasetMeta` — support, years,
              crime filter, CRS, source
@@ -41,7 +41,7 @@ class Dataset:
     """
 
     gdf: gpd.GeoDataFrame
-    unit: str                                   # "sector" | "grid" | "segment"
+    unit: str                                   # "sector" | "grid"
     id_col: str = "unit_id"
     value_col: str = "crime_count"
     crs_metric: str = CRS_METRIC

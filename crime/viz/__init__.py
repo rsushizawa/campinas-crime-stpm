@@ -10,9 +10,7 @@ static maps/charts return ``(fig, ax)``, interactive ones a plotly ``Figure``.
     classify  choropleth class breaks (quantile / equal interval / natural)
     maps      unit-level maps (Gi*, LISA, EHSA, choropleths, trends, interactive)
     charts    non-map charts (time series, STL, correlation, Moran, EHSA emergence)
-    voxel     3-D geometry for the cube plots (plotly Mesh3d kwargs)
-    cubes     3-D space-time cubes, slice small-multiples, transition Sankey
-    imagery   Sentinel-2 region history (optional ``imagery`` extra: Earth Engine)
+    cubes     3-D space-time cubes, per-slice Gi* small multiples
 
 Nothing is imported here, so ``import crime.viz`` pulls in no plotting
 backend; import the submodule you need (or use the top-level ``crime.*``

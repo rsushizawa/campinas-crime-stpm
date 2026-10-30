@@ -24,7 +24,7 @@ from typing import Any, Mapping
 
 from crime.core.config import CRS_METRIC
 
-SUPPORTS = ("sector", "grid", "segment")
+SUPPORTS = ("sector", "grid")
 
 
 def _jsonable(v: Any) -> Any:
@@ -43,11 +43,11 @@ def _jsonable(v: Any) -> Any:
 class DatasetMeta:
     """Header of a :class:`~crime.core.dataset.Dataset`.
 
-    unit          : spatial support — ``"sector"`` | ``"grid"`` | ``"segment"``.
+    unit          : spatial support — ``"sector"`` | ``"grid"``.
     years         : inclusive crime-year window, or ``None`` for all years.
     crime_slug    : crime-type filter (one slug or a tuple), ``None`` = all.
     crime_group   : crime-group filter (``"property"``, ``"violent"`` ...).
-    location_type : ``subtipo_local`` filter (segments default to "Via Pública").
+    location_type : ``subtipo_local`` filter (e.g. "Via Pública"), ``None`` = all.
     crs_metric    : projected CRS used for areas, distances and weights.
     source        : where the rows came from (e.g. ``"postgis:vw_sector_features"``).
     """
