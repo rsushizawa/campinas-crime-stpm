@@ -24,17 +24,24 @@ from pyproj import Transformer
 from crime.viz.style import PlotStyle
 
 
-def map_axes(style: PlotStyle = PlotStyle(), title: str = ""):
+def map_axes(style: PlotStyle = PlotStyle(), title: str = "", ax=None):
+    """A new ``(fig, ax)``, or ``ax`` and its figure when drawing into a caller's panel."""
     style.apply()
-    fig, ax = plt.subplots(figsize=style.figsize)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=style.figsize)
+    else:
+        fig = ax.figure
     ax.set_axis_off()
     if title:
         ax.set_title(title, fontsize=style.title_size)
     return fig, ax
 
 
-def finish(fig):
-    fig.tight_layout()
+def finish(fig, own: bool = True):
+    """``tight_layout`` a figure the map function created (``own``); a caller's
+    multi-panel figure is left to the caller."""
+    if own:
+        fig.tight_layout()
     return fig
 
 

@@ -3,8 +3,10 @@
 Consumes: ``GiStarResult`` (hotspot_map), ``LisaResult`` (lisa_map),
 ``EhsaResult`` (ehsa_map, persistence_map), a cube
 (``CubeResult``/``SpaceTimeCube``: history_map, trend_map, grid_heatmap), or
-any result with ``.gdf`` / a bare GeoDataFrame (choropleth_map,
-bivariate_choropleth, interactive_map). ``dataset`` supplies the boundary
+any result with ``.gdf`` / a bare GeoDataFrame (choropleth_map, category_map,
+bivariate_choropleth, interactive_map). The categorical maps take ``ax=`` to
+draw into one panel of a caller's figure (``legend=False`` / ``"none"`` plus
+``category_legend_handles`` / ``ehsa_legend_handles`` for a shared legend). ``dataset`` supplies the boundary
 overlay and id/value column names. Statistics come from :mod:`crime.esri`.
 
     from crime import hotspot_map, lisa_map, ehsa_map, choropleth_map, interactive_map
@@ -39,11 +41,14 @@ if TYPE_CHECKING:
 # one basemap for every static map — Esri light-grey canvas (falls back to OSM)
 DEFAULT_BASEMAP = "gray"
 
-_HOTSPOT_LABELS = {"hotspot": "Hot spot", "coldspot": "Cold spot", "ns": "Not significant"}
+_HOTSPOT_LABELS = {"hotspot": "Hot spot", "coldspot": "Cold spot", "ns": "Not significant",
+                   "no data": "No data (no neighbour)"}
 _LISA_LABELS = {"HH": "High-High", "HL": "High-Low", "LH": "Low-High",
-                "LL": "Low-Low", "ns": "Not significant"}
-_LISA_ORDER = ["HH", "HL", "LH", "LL", "ns"]
+                "LL": "Low-Low", "ns": "Not significant", "no data": "No data (no neighbour)"}
+_LISA_ORDER = ["HH", "HL", "LH", "LL", "ns", "no data"]
 _NS_VALUES = {"ns", "no pattern"}                 # drawn recessive when mask_ns=True
+NO_DATA = "no data"                               # islands / missing: white with a grey hatch
+_NO_DATA_STYLE = dict(facecolor="white", edgecolor="#737373", hatch="////", linewidth=0.3)
 _BIVAR_GRID = np.array([["#e8e8e8", "#ace4e4", "#5ac8c8"],
                         ["#dfb0d6", "#a5add3", "#5698b9"],
                         ["#be64ac", "#8c62aa", "#3b4994"]])
@@ -108,43 +113,79 @@ def choropleth_map(result, dataset=None, *, column: str | None = None, title: st
 # --------------------------------------------------------------------------- #
 #  categorical maps (Gi* / LISA / EHSA)
 # --------------------------------------------------------------------------- #
+def category_legend_handles(palette, label_names, keys, *, faded=()):
+    """Legend patches for categorical map values ``keys`` (``"no data"`` hatched)."""
+    out = []
+    for k in keys:
+        if k == NO_DATA and k not in palette:
+            out.append(mpatches.Patch(label=label_names.get(k, k), **_NO_DATA_STYLE))
+        else:
+            out.append(mpatches.Patch(color=palette[k], label=label_names.get(k, k),
+                                      alpha=0.3 if k in faded else 1.0))
+    return out
+
+
 def _category_map(gdf, values, palette, label_names, order, title, style, dataset,
-                  overlay, basemap, mask_ns):
-    fig, ax = map_axes(style, title)
+                  overlay, basemap, mask_ns, ax=None, legend=True):
+    own = ax is None
+    fig, ax = map_axes(style, title, ax=ax)
     values = pd.Series(values, index=gdf.index)
+    nodata = values.eq(NO_DATA) & (NO_DATA not in palette)
     colors = values.map(palette).fillna(palette["ns"])
     ns = values.isin(_NS_VALUES) if mask_ns else pd.Series(False, index=gdf.index)
     base_alpha = 0.8 if basemap else 1.0
-    if ns.any():
-        gdf[ns].plot(color=colors[ns], ax=ax, alpha=0.25 * base_alpha,
-                     edgecolor="none", linewidth=0)
-    gdf[~ns].plot(color=colors[~ns], ax=ax, alpha=base_alpha,
-                  edgecolor=style.edge_color, linewidth=style.edge_width)
+    if (ns & ~nodata).any():
+        gdf[ns & ~nodata].plot(color=colors[ns & ~nodata], ax=ax, alpha=0.25 * base_alpha,
+                               edgecolor="none", linewidth=0)
+    if (~ns & ~nodata).any():
+        gdf[~ns & ~nodata].plot(color=colors[~ns & ~nodata], ax=ax, alpha=base_alpha,
+                                edgecolor=style.edge_color, linewidth=style.edge_width)
+    if nodata.any():
+        gdf[nodata].plot(ax=ax, **_NO_DATA_STYLE)
     present = [k for k in order if k in set(values)]
-    ax.legend(handles=[mpatches.Patch(color=palette[k], label=label_names[k],
-                                      alpha=0.3 if k in _NS_VALUES and mask_ns else 1.0)
-                       for k in present],
-              loc=style.legend_loc, framealpha=0.9)
+    if legend:
+        ax.legend(handles=category_legend_handles(palette, label_names, present,
+                                                  faded=_NS_VALUES if mask_ns else ()),
+                  loc=style.legend_loc, framealpha=0.9)
     map_frame(ax, gdf, style)
     _overlay(ax, dataset, overlay, style)
     _basemap(ax, gdf, basemap)
-    return finish(fig), ax
+    return finish(fig, own), ax
+
+
+def category_map(gdf, column: str, palette: dict, *, label_names: dict | None = None,
+                 order: list | None = None, title: str = "", dataset=None, overlay: bool = False,
+                 basemap=False, mask_ns: bool = False, ax=None, legend: bool = True,
+                 style: PlotStyle = PlotStyle()):
+    """Map of any categorical ``column`` with an explicit ``palette`` (value -> colour);
+    ``"no data"`` is drawn hatched unless the palette colours it. Values missing from
+    the palette fall back to ``palette["ns"]``. ``ax`` draws into a caller's panel."""
+    order = order or list(palette)
+    label_names = {**{k: str(k) for k in order}, **(label_names or {})}
+    pal = {"ns": "#f0f0f0", **palette}
+    return _category_map(gdf, gdf[column].values, pal, label_names, order, title, style,
+                         dataset, overlay, basemap, mask_ns, ax=ax, legend=legend)
 
 
 def hotspot_map(result, dataset=None, *, title: str = "", overlay: bool = False,
-                basemap=DEFAULT_BASEMAP, mask_ns: bool = True, style: PlotStyle = PlotStyle()):
+                basemap=DEFAULT_BASEMAP, mask_ns: bool = True, ax=None, legend: bool = True,
+                style: PlotStyle = PlotStyle()):
     return _category_map(
         result.gdf, result.gdf["label"].values, style.hotspot_palette, _HOTSPOT_LABELS,
         list(_HOTSPOT_LABELS), title or f"Gi* — {result.value_col}", style, dataset,
-        overlay, basemap, mask_ns,
+        overlay, basemap, mask_ns, ax=ax, legend=legend,
     )
 
 
 def lisa_map(result, dataset=None, *, title: str = "", overlay: bool = False,
-             basemap=DEFAULT_BASEMAP, mask_ns: bool = True, style: PlotStyle = PlotStyle()):
+             basemap=DEFAULT_BASEMAP, mask_ns: bool = True, ax=None, legend: bool = True,
+             label_names: dict | None = None, style: PlotStyle = PlotStyle()):
+    """``label_names`` overrides the quadrant legend text (e.g. for a bivariate LISA)."""
     return _category_map(
-        result.gdf, result.gdf["label"].values, style.lisa_palette, _LISA_LABELS, _LISA_ORDER,
+        result.gdf, result.gdf["label"].values, style.lisa_palette,
+        {**_LISA_LABELS, **(label_names or {})}, _LISA_ORDER,
         title or f"LISA — {result.value_col}", style, dataset, overlay, basemap, mask_ns,
+        ax=ax, legend=legend,
     )
 
 
@@ -152,9 +193,34 @@ _EHSA_PATTERNS = ["new", "consecutive", "intensifying", "persistent",
                   "diminishing", "sporadic", "oscillating", "historical"]
 
 
+def ehsa_legend_handles(categories, *, hatch: bool = False, style: PlotStyle = PlotStyle(),
+                        counts: dict | None = None):
+    """The hierarchical EHSA legend (family headers, then the pattern rows present in
+    ``categories``, then "no pattern") — for a legend shared by several panels.
+    ``counts`` (category -> n) appends "(n)" to each row."""
+    palette = style.ehsa_palette
+    hatches = style.ehsa_hatches if hatch else {}
+    present = set(categories)
+
+    def _patch(c):
+        lab = c if counts is None else f"{c} ({counts.get(c, 0):,})"
+        return mpatches.Patch(facecolor=palette[c], hatch=hatches.get(c),
+                              edgecolor=style.boundary_color, linewidth=0.4, label=lab)
+
+    handles = []
+    for fam, key in (("Hot spot", "hotspot"), ("Cold spot", "coldspot")):
+        rows = [f"{p} {key}" for p in _EHSA_PATTERNS if f"{p} {key}" in present]
+        if rows:
+            handles.append(mpatches.Patch(alpha=0, label=fam))
+            handles += [_patch(c) for c in rows]
+    if "no pattern" in present:
+        handles += [mpatches.Patch(alpha=0, label=""), _patch("no pattern")]
+    return handles
+
+
 def ehsa_map(result, dataset=None, *, title: str = "", overlay: bool = False,
              basemap=DEFAULT_BASEMAP, mask_ns: bool = False, legend: str = "hierarchical",
-             hatch: bool = False, style: PlotStyle = PlotStyle()):
+             hatch: bool = False, ax=None, style: PlotStyle = PlotStyle()):
     """EHSA category map — hot categories on a red ramp, cold on a blue ramp.
 
     Every spatial unit is drawn; "no pattern" renders solid gray so the full
@@ -163,11 +229,14 @@ def ehsa_map(result, dataset=None, *, title: str = "", overlay: bool = False,
     reads the ramp as darker = more entrenched), ``"family"`` (hot / cold / none
     only), ``"full"`` (flat list), or ``"none"``. ``hatch=True`` restores the
     per-pattern hatch fill (fiddly at print size and invisible on a basemap).
+    ``ax`` draws into a caller's panel (use ``legend="none"`` plus
+    :func:`ehsa_legend_handles` for a shared legend).
     """
     palette = style.ehsa_palette
     hatches = style.ehsa_hatches if hatch else {k: None for k in style.ehsa_hatches}
     gdf = result.gdf
-    fig, ax = map_axes(style, title or "Emerging Hot Spot Analysis")
+    own = ax is None
+    fig, ax = map_axes(style, title or "Emerging Hot Spot Analysis", ax=ax)
     cats = gdf["category"].where(gdf["category"].isin(palette), "no pattern")
     lines = gdf.geom_type.str.endswith("LineString").all()
     base_alpha = 0.8 if basemap else 1.0
@@ -196,18 +265,12 @@ def ehsa_map(result, dataset=None, *, title: str = "", overlay: bool = False,
                   loc="upper center", bbox_to_anchor=(0.5, -0.05), ncol=3, framealpha=0.9,
                   fontsize=style.font_size - 2)
     elif legend == "hierarchical":
-        handles, blank = [], mpatches.Patch(alpha=0, label="")
-        for fam, key in (("Hot spot", "hotspot"), ("Cold spot", "coldspot")):
-            rows = [f"{p} {key}" for p in _EHSA_PATTERNS if f"{p} {key}" in cats.values]
-            if rows:
-                handles.append(mpatches.Patch(alpha=0, label=fam))
-                handles += [_patch(c) for c in rows]
-        if (cats == "no pattern").any():
-            handles += [blank, _patch("no pattern")]
-        ax.legend(handles=handles, loc="center left", bbox_to_anchor=(1.01, 0.5),
+        ax.legend(handles=ehsa_legend_handles(cats.values, hatch=hatch and not lines, style=style),
+                  loc="center left", bbox_to_anchor=(1.01, 0.5),
                   framealpha=0.9, fontsize=style.font_size - 3, handlelength=1.4)
-        finish(fig)
-        fig.subplots_adjust(right=0.78)
+        finish(fig, own)
+        if own:
+            fig.subplots_adjust(right=0.78)
         _overlay(ax, dataset, overlay, style)
         map_frame(ax, gdf, style)
         _basemap(ax, gdf, basemap)
@@ -220,7 +283,7 @@ def ehsa_map(result, dataset=None, *, title: str = "", overlay: bool = False,
     map_frame(ax, gdf, style)
     _overlay(ax, dataset, overlay, style)
     _basemap(ax, gdf, basemap)
-    return finish(fig), ax
+    return finish(fig, own), ax
 
 
 def bivariate_choropleth(result, dataset=None, *, x_col: str = "crime_count",

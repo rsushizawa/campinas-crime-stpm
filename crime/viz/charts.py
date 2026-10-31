@@ -106,23 +106,64 @@ def time_series(data, *, per_slug: bool = True, top: int = 8, logy: bool = False
     return fig, ax
 
 
-def correlation_heatmap(result, *, title: str = "", style: PlotStyle = PlotStyle()):
-    """Correlation matrix heatmap with annotated coefficients."""
+def annotated_heatmap(matrix: pd.DataFrame, *, ax=None, cmap=None, norm=None, vmin=None, vmax=None,
+                      fmt: str = "{:.2f}", marks: pd.DataFrame | None = None, mark_suffix: str = "*",
+                      cbar_label: str = "", xlabel: str = "", ylabel: str = "", title: str = "",
+                      xrotation: float = 90, annot_size: float | None = None,
+                      style: PlotStyle = PlotStyle()):
+    """Matrix heatmap with every cell annotated (``fmt``); NaN cells grey with "n/a".
+    ``marks`` (bool, same shape) outlines those cells in black and appends
+    ``mark_suffix`` to their text (e.g. significant cells)."""
+    import matplotlib.colors as mcolors
+
     style.apply()
+    own = ax is None
+    if own:
+        fig, ax = plt.subplots(figsize=style.figsize)
+    fig = ax.figure
+    cm = plt.get_cmap(cmap or style.cmap_diverging).copy()
+    cm.set_bad("#d9d9d9")
+    vals = matrix.to_numpy(dtype=float)
+    im = ax.imshow(np.ma.masked_invalid(vals), cmap=cm, norm=norm,
+                   vmin=None if norm else vmin, vmax=None if norm else vmax, aspect="auto")
+    ax.set_xticks(range(len(matrix.columns)), [str(c) for c in matrix.columns], rotation=xrotation,
+                  ha="right" if 0 < xrotation < 90 else "center")
+    ax.set_yticks(range(len(matrix.index)), [str(i) for i in matrix.index])
+    nrm = im.norm
+    for i in range(vals.shape[0]):
+        for j in range(vals.shape[1]):
+            v = vals[i, j]
+            marked = marks is not None and bool(np.asarray(marks, dtype=bool)[i, j])
+            if np.isnan(v):
+                txt, color = "n/a", "#525252"
+            else:
+                txt = fmt.format(v) + (mark_suffix if marked else "")
+                lum = np.dot(mcolors.to_rgb(cm(nrm(v))), [0.299, 0.587, 0.114])
+                color = "white" if lum < 0.5 else "black"
+            ax.text(j, i, txt, ha="center", va="center", fontsize=annot_size or style.font_size - 3, color=color,
+                    fontweight="bold" if marked else "normal")
+            if marked:
+                ax.add_patch(plt.Rectangle((j - 0.5, i - 0.5), 1, 1, fill=False, ec="black", lw=1.2))
+    for s in ax.spines.values():
+        s.set_visible(False)
+    ax.tick_params(length=0)
+    fig.colorbar(im, ax=ax, shrink=0.8, label=cbar_label)
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    if ylabel:
+        ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title, fontsize=style.title_size)
+    return finish(fig, own), ax
+
+
+def correlation_heatmap(result, *, title: str = "", ax=None, cbar_label: str = "",
+                        style: PlotStyle = PlotStyle()):
+    """Correlation matrix heatmap with annotated coefficients (diverging, -1 … 1)."""
     matrix = getattr(result, "matrix", result)
-    fig, ax = plt.subplots(figsize=style.figsize)
-    im = ax.imshow(matrix.values, cmap=style.cmap_diverging, vmin=-1, vmax=1)
-    ax.set_xticks(range(len(matrix.columns)), matrix.columns, rotation=90)
-    ax.set_yticks(range(len(matrix.index)), matrix.index)
-    for i in range(len(matrix.index)):
-        for j in range(len(matrix.columns)):
-            v = matrix.values[i, j]
-            ax.text(j, i, f"{v:.2f}", ha="center", va="center",
-                    fontsize=style.font_size - 3, color="white" if abs(v) > 0.5 else "black")
-    fig.colorbar(im, shrink=0.7)
-    ax.set_title(title or f"{getattr(result, 'method', '')} correlation".strip(),
-                 fontsize=style.title_size)
-    return finish(fig), ax
+    return annotated_heatmap(matrix, ax=ax, cmap=style.cmap_diverging, vmin=-1, vmax=1,
+                             cbar_label=cbar_label, style=style,
+                             title=title or f"{getattr(result, 'method', '')} correlation".strip())
 
 
 def clustered_heatmap(result, *, title: str = "", style: PlotStyle = PlotStyle()):

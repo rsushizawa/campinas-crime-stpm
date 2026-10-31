@@ -43,3 +43,18 @@ def pytest_collection_modifyitems(config, items):
     if reason:
         for it in db_items:
             it.add_marker(pytest.mark.skip(reason=reason))
+
+
+@pytest.fixture(scope="module")
+def rc():
+    """``scripts/04_analyse/run_core.py`` as a module (test_run_core, test_make_figures)."""
+    import importlib
+    import sys
+    from pathlib import Path
+
+    scripts = Path(__file__).resolve().parents[1] / "scripts" / "04_analyse"
+    sys.path.insert(0, str(scripts))
+    try:
+        yield importlib.import_module("run_core")
+    finally:
+        sys.path.remove(str(scripts))

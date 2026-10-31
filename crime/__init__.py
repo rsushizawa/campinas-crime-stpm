@@ -87,10 +87,11 @@ _export("crime.viz.style", "PlotStyle")
 _export("crime.viz.classify", "classify", "bin_index")
 _export("crime.viz.frame", "map_axes", "map_frame", "boundary_overlay")
 _export("crime.viz.basemap", "add_basemap")
-_export("crime.viz.maps", "DEFAULT_BASEMAP", "bivariate_choropleth", "choropleth_map", "ehsa_map",
+_export("crime.viz.maps", "DEFAULT_BASEMAP", "bivariate_choropleth", "category_map", "choropleth_map",
+        "ehsa_legend_handles", "ehsa_map",
         "grid_heatmap", "history_map", "hotspot_map", "interactive_map",
         "lisa_map", "persistence_map", "trend_map")
-_export("crime.viz.charts", "bar_chart", "clustered_heatmap", "cluster_profiles",
+_export("crime.viz.charts", "annotated_heatmap", "bar_chart", "clustered_heatmap", "cluster_profiles",
         "correlation_heatmap", "cube_profiles", "moran_scatter", "seasonal_plot", "time_series")
 _export("crime.viz.cubes", "ehsa_slice_maps", "interactive_slice_map",
         "space_time_cube_3d", "space_time_lisa_cube")

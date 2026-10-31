@@ -6,30 +6,18 @@ pipeline runs end to end into ``tmp_path`` with reduced permutation counts.
 """
 from __future__ import annotations
 
-import importlib
 import json
-import sys
 from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import pytest
 import shapely
 
 from crime.core.config import CRS_METRIC, CRS_WGS84
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts" / "04_analyse"
 X0, Y0, SIDE = 285_000.0, 7_465_000.0, 4_000.0      # a 4 x 4 km box in EPSG:31983 (Campinas zone)
-
-
-@pytest.fixture(scope="module")
-def rc():
-    sys.path.insert(0, str(SCRIPTS))
-    try:
-        yield importlib.import_module("run_core")
-    finally:
-        sys.path.remove(str(SCRIPTS))
 
 
 # ------------------------------------------------------------------ upsert
@@ -109,15 +97,21 @@ def _cnefe(n: int = 600) -> gpd.GeoDataFrame:
 
 
 # ------------------------------------------------------------------ end to end
-def test_run_core_end_to_end_synthetic(rc, tmp_path, monkeypatch):
-    import crime.data.cleaning as cleaning
+def synthetic_units(tracts: gpd.GeoDataFrame, spec: dict) -> gpd.GeoDataFrame:
     from crime.data.units import tessellation
+
+    return tracts if spec["kind"] == "tract" else tessellation(tracts, shape=spec["kind"], area_km2=spec["area_km2"])
+
+
+def run_synthetic(rc, tmp_path, monkeypatch, groups=("all", "property")):
+    """Run every step of run_core on the synthetic municipality (tract + hex0.5) into
+    ``tmp_path / "core"``; returns ``(out, tracts, bulletins)``. Shared with the figure smoke test."""
+    import crime.data.cleaning as cleaning
 
     tracts = _tracts()
     bpath = tmp_path / "bulletins_clean.parquet"
     bul = _bulletins(tracts)
     bul.to_parquet(bpath, index=False)
-    n_in_tract = int(bul["cd_setor"].notna().sum())
 
     C = rc.C
     monkeypatch.setattr(rc, "BULLETINS_PARQUET", bpath)
@@ -134,9 +128,7 @@ def test_run_core_end_to_end_synthetic(rc, tmp_path, monkeypatch):
 
     def units(self, support):
         if support not in self._units:
-            spec = C.SUPPORTS[support]
-            self._units[support] = (tracts if spec["kind"] == "tract" else
-                                    tessellation(tracts, shape=spec["kind"], area_km2=spec["area_km2"]))
+            self._units[support] = synthetic_units(tracts, C.SUPPORTS[support])
         return self._units[support]
 
     monkeypatch.setattr(rc.Context, "units", units)
@@ -144,7 +136,14 @@ def test_run_core_end_to_end_synthetic(rc, tmp_path, monkeypatch):
     monkeypatch.setattr(cleaning, "cnefe_poi_points", lambda path: _cnefe())
 
     out = tmp_path / "core"
-    rc.main(["--groups", "all", "property", "--supports", "tract", "hex0.5", "--out", str(out)])
+    rc.main(["--groups", *groups, "--supports", "tract", "hex0.5", "--out", str(out)])
+    return out, tracts, bul
+
+
+def test_run_core_end_to_end_synthetic(rc, tmp_path, monkeypatch):
+    out, tracts, bul = run_synthetic(rc, tmp_path, monkeypatch)
+    C = rc.C
+    n_in_tract = int(bul["cd_setor"].notna().sum())
 
     # every support counts the same in-tract event set (finding: like-with-like MAUP)
     desc = pd.read_csv(out / "descriptive.csv")

@@ -4,7 +4,7 @@
 #
 #   make env              # locked environment, all extras (uv sync, uv.lock) -> .venv
 #   make db               # PostGIS (PGPORT / CRIME_DB_CONTAINER / DB_PROJECT override the defaults)
-#   make acquire clean-data analyse   # no database needed
+#   make acquire clean-data analyse figures   # no database needed
 #   make acquire clean validate       # + PostGIS load and validation
 #   make test             # pytest; DB tests are skipped when PostGIS is unreachable
 #
@@ -14,7 +14,7 @@ PY ?= .venv/bin/python
 DB_PROJECT ?= campinas-crime-stpm
 export PGPORT
 
-.PHONY: help env db acquire clean clean-data load-db validate validate-no-db analyse analyse-quick test
+.PHONY: help env db acquire clean clean-data load-db validate validate-no-db analyse analyse-quick figures test
 
 help:
 	@sed -n '1,10p' Makefile
@@ -51,6 +51,12 @@ analyse:
 	$(PY) scripts/04_analyse/run_core.py $(ANALYSE_ARGS)
 analyse-quick:
 	$(PY) scripts/04_analyse/run_core.py --quick
+
+# 05_figures: outputs/core/ -> outputs/figures/<group>/*.png + index.md. Reads the stage-04 tables
+# and the unit geometries only (no database, no statistics). Basemap tiles off (FIGURES_ARGS="--basemap").
+# Piecemeal: FIGURES_ARGS="--groups property drug".
+figures:
+	$(PY) scripts/05_figures/make_figures.py $(FIGURES_ARGS)
 
 # ---- tests ----------------------------------------------------------------------------------
 test:
