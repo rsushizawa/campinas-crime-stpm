@@ -233,7 +233,7 @@ def fig_stl(core: Path, sink: Sink, g: str) -> None:
         ax.set_ylabel(lab, rotation=0, ha="right", va="center", fontsize=STYLE.font_size - 1)
     axes[-1].set_xlabel("Month of occurrence")
     fig.tight_layout()
-    sink.save(fig, f"stl_{g}", f"Monthly recorded {gname(g)} {PERIOD} (all bulletins and those geocoded "
+    sink.save(fig, f"stl_{g}", f"Monthly counts of {gname(g)}, {PERIOD} (all bulletins and those geocoded "
                                f"in a tract) and its STL trend, seasonal and residual components.")
 
 
@@ -437,7 +437,7 @@ def fig_ehsa(sink: Sink, g: str, ehsa: dict, basemap) -> None:
         fig.text(0.01, 0.01, spec, fontsize=STYLE.font_size - 2, color="#404040")
         fig.tight_layout(rect=(0, 0.03, 1, 1))
         sink.save(fig, f"ehsa_{s.replace('.', '_')}_{g}",
-                  f"EHSA category of every {sname(s).lower()} unit for {gname(g)} ({spec}); "
+                  f"EHSA category of every unit ({sname(s)}) for {gname(g)} ({spec}); "
                   f"'no pattern' in grey.")
 
     fig, axes, spare = panel_grid(len(frames))
