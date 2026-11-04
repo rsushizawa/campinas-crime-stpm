@@ -1,0 +1,31 @@
+# PostGIS for campinas-crime-stpm. Host port, container name and compose project are
+# environment-parameterised so a second copy (another worktree, or a host
+# whose 5432 is taken) can run side by side without touching the default one:
+#
+#   docker compose -f database/docker-compose.yml up -d                       # 5432, crime_db
+#   PGPORT=5433 CRIME_DB_CONTAINER=crime_db_5433 \
+#     docker compose -p campinas-crime-stpm-5433 -f database/docker-compose.yml up -d    # separate volume
+#
+# The volume is named <project>_crime_data, so a different -p never reuses
+# (or deletes) another project's data.
+#
+# The password is never stored here: set POSTGRES_PASSWORD in the environment
+# or in the repository's .env (copy .env.example; `make db` passes it with
+# --env-file). crime.core.config.DBConfig reads the same variable.
+name: ${COMPOSE_PROJECT_NAME:-campinas-crime-stpm}
+services:
+  db:
+    image: postgis/postgis:latest
+    container_name: ${CRIME_DB_CONTAINER:-crime_db}
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (see .env.example)}
+      POSTGRES_DB: crime_db
+    ports:
+      - "${PGPORT:-5432}:5432"
+    volumes:
+      - crime_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+
+volumes:
+  crime_data:
