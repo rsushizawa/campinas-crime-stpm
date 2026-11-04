@@ -1,5 +1,11 @@
 # IBGE statistical grid (*Grade Estatística*): 2022 grid, its Campinas cache, and two unused grids
 
+> **Removed (author decision, 2026-11-03).** The paper analyses census tracts
+> only, so the statistical grid are no longer read and the files were removed from
+> `inputs/data/` (last SHA-256 in [`inputs/data/README.md`](../../inputs/data/README.md);
+> recoverable from the tag `archive/pre-warehouse-2026-11-03`). The text below
+> describes the files as they were.
+
 The polygon support of the PostGIS warehouse (`dim_grid_cell`,
 `vw_grid_features`). Two grid files are in the repo, both
 read by the warehouse ETL (`scripts/02_clean/load_database.py` →

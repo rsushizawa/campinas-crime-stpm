@@ -1,10 +1,10 @@
-"""Known-answer tests for the one-row-per-bulletin rule (etl.clean / etl.taxonomy.MAX_PENALTY)."""
+"""Known-answer tests for the one-row-per-bulletin rule (etl.clean / crime.core.taxonomy.MAX_PENALTY)."""
 from __future__ import annotations
 
 import pandas as pd
 import pytest
 
-from etl import taxonomy
+from crime.core import taxonomy
 from etl.clean import collapse_bulletins
 
 

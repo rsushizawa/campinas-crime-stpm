@@ -1,22 +1,16 @@
-"""Extract each raw data source into a (Geo)DataFrame ready for PostGIS load.
-
-One plain function per source — no factory, no base class:
+"""Readers for each raw data source, one plain function per source.
 
     from etl import sources
-    crimes  = sources.extract_crimes()
-    tracts  = sources.extract_census_tracts()
-    grid    = sources.extract_grid(boundary=tracts)
-    utb     = sources.extract_utb()
-    cnefe   = sources.extract_cnefe()
-    pop     = sources.extract_census_2022()      # definitive IBGE 2022, per tract
-    income  = sources.extract_income_2022()      # IBGE 2022 household-head income, per tract
-    lit     = sources.extract_literacy()
+    records = sources.extract_crimes()            # acquired SSP-SP offence records
+    tracts  = sources.extract_census_tracts()     # IBGE 2022 tract polygons (geobr)
+    census  = sources.extract_census_2022()       # population and households per tract
+    income  = sources.extract_income_2022()       # household-head income per tract
+    lit     = sources.extract_literacy()          # literacy counts per tract
 
-``extract_census_2022`` downloads the **definitive** "Agregados por Setores
-Censitários / Básico" CSV from the IBGE FTP (cached under ``inputs/data/geobr``),
-replacing the preliminary ``Agregados_..._BR.zip`` that used to live in the
-repo. ``extract_census_tracts`` / ``extract_grid`` use ``geobr`` + a parquet
-cache as before.
+The IBGE aggregate tables are read from the zips in ``inputs/data/geobr/``.
+When a zip is missing it is downloaded from the IBGE FTP server; rule 1
+(:class:`etl.steps.acquire.VerifyRawInputs`) then checks its SHA-256, so a
+file IBGE has since replaced is caught.
 """
 import io
 import re
@@ -27,18 +21,7 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 
-from crime.core.config import (
-    BULLETINS_PARQUET,
-    CNEFE_JSON,
-    CODE_MUNI_CAMPINAS,
-    CRIMES_CSV,
-    GEOBR_CACHE,
-    GRID_2022_ZIP,
-    INPUTS_DIR,
-    UTB_GEOJSON,
-)
-
-PAINEL_CSV = INPUTS_DIR / "Painel_IBGE_2022.csv"
+from crime.core.config import CODE_MUNI_CAMPINAS, CRIMES_CSV, GEOBR_CACHE, PAINEL_CSV
 
 _IBGE_SETORES_CSV = (
     "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/"
@@ -72,12 +55,6 @@ def extract_crimes(path: str | Path = CRIMES_CSV) -> pd.DataFrame:
     return df
 
 
-def extract_bulletins(path: str | Path = BULLETINS_PARQUET) -> pd.DataFrame:
-    """Cleaned bulletins — one row per ``NUM_BO + ANO_BO + NOME_DELEGACIA``
-    (``scripts/02_clean/clean_bulletins.py``; rule in ``etl/clean.py``)."""
-    return pd.read_parquet(path)
-
-
 # --------------------------------------------------------------------------- #
 #  IBGE geometries (geobr, parquet-cached)
 # --------------------------------------------------------------------------- #
@@ -104,60 +81,6 @@ def extract_census_tracts(
     if gdf["cd_setor"].duplicated().any():
         gdf = gdf.dissolve(by="cd_setor", as_index=False)
     return gdf.to_crs("EPSG:4326")
-
-
-def extract_grid(
-    *, boundary: gpd.GeoDataFrame, path: str | Path = GRID_2022_ZIP, cache_dir: Path = GEOBR_CACHE
-) -> gpd.GeoDataFrame:
-    """2022 statistical grid clipped to ``boundary`` (grid_id, pop_total, dom_total)."""
-    cache = Path(cache_dir) / "statistical_grid_2022_campinas.parquet"
-    if cache.exists():
-        gdf = gpd.read_parquet(cache)
-    else:
-        b = boundary.to_crs("EPSG:4674")
-        gdf = gpd.read_file(path, bbox=tuple(b.total_bounds))
-        gdf = gdf[gdf.geometry.intersects(b.union_all())]
-        cache.parent.mkdir(parents=True, exist_ok=True)
-        gdf.to_parquet(cache)
-    gdf = gdf.rename(columns={"ID_UNICO": "grid_id", "TOTAL": "pop_total", "TOTAL_DOM": "dom_total"})
-    gdf = gdf[["grid_id", "pop_total", "dom_total", "geometry"]].drop_duplicates(subset="grid_id")
-    return gdf.to_crs("EPSG:4326")
-
-
-# --------------------------------------------------------------------------- #
-#  UTB polygons + CNEFE address points
-# --------------------------------------------------------------------------- #
-def extract_utb(path: str | Path = UTB_GEOJSON) -> gpd.GeoDataFrame:
-    """93 UTB polygons. The file declares 4326 but holds 31983 coords.
-
-    ``rendatemei`` is a **count** of residents earning <= 1/2 minimum wage
-    (max 606 per zone), not an income level; it was previously renamed to
-    ``income_mean`` by mistake (IC-Crime#1, comment 5: Spearman -0.585 against
-    the real IBGE 2022 tract income). It is now exposed under the honest name
-    ``n_low_income_half_mw``. For tract income use :func:`extract_income_2022`.
-    """
-    gdf = gpd.read_file(path).set_crs("EPSG:31983", allow_override=True).to_crs("EPSG:4326")
-    gdf = gdf.rename(columns={"rendatemei": "n_low_income_half_mw", "denominaca": "denominacao"})
-    gdf["gid"] = range(1, len(gdf) + 1)
-    return gdf[["gid", "utb_sigla", "denominacao", "tot_pop", "tot_dom",
-                "tot_pop_fa", "n_low_income_half_mw", "geometry"]]
-
-
-def extract_cnefe(path: str | Path = CNEFE_JSON) -> gpd.GeoDataFrame:
-    """CNEFE address points in EPSG:4326. A row is one use type (espécie) at one
-    address, so duplicates are dropped on (cod_unico_endereco, cod_especie)
-    (IC-Crime#18; deduplicating on the address alone lost 8% of espécie 6)."""
-    rename = {
-        "COD_UNICO_ENDERECO": "cod_unico_endereco", "COD_SETOR": "cd_setor", "CEP": "cep",
-        "DSC_LOCALIDADE": "dsc_localidade", "NV_GEO_COORD": "nv_geo_coord",
-        "COD_TIPO_ESPECI": "cod_tipo_especi", "DSC_ESTABELECIMENTO": "dsc_estabelecimento",
-        "COD_ESPECIE": "cod_especie",
-    }
-    gdf = gpd.read_file(path)
-    gdf["COD_SETOR"] = gdf["COD_SETOR"].astype(str).str.rstrip("P")
-    gdf = gdf.rename(columns=rename)[list(rename.values()) + ["geometry"]]
-    gdf = gdf.drop_duplicates(subset=["cod_unico_endereco", "cod_especie"])
-    return gpd.GeoDataFrame(gdf, geometry="geometry", crs="EPSG:4326")
 
 
 # --------------------------------------------------------------------------- #
@@ -256,7 +179,7 @@ _PAINEL_RENAME = {
 
 def extract_literacy(path: str | Path = PAINEL_CSV) -> pd.DataFrame:
     """Per-tract literacy indicators (8 ``alfa_*`` age-band columns) for
-    ``dim_setor_painel`` — used by ``enrich.sql`` for ``literacy_rate``.
+    ``literacy_rate`` (:mod:`etl.census`).
 
     NOTE: still read from the curated ``Painel_IBGE_2022.csv`` export. The
     definitive per-tract source is the IBGE FTP "Agregados por Setores /

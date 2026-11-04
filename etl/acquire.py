@@ -1,25 +1,24 @@
-"""Acquire stage: raw SSP-SP extracts -> one Campinas offence-record table (IC-Crime#13).
+"""Rule functions of the acquire stage: raw SSP-SP extracts to one Campinas offence-record table.
 
-    from etl import acquire
-    df, report = acquire.build_crimes_table()          # raw inputs from crime.core.config
-    acquire.write_crimes_csv(df, CRIMES_CSV)
+The stage itself is :func:`etl.steps.acquire.acquire_pipeline`; each of its
+steps calls one function of this module (IC-Crime#13).
 
 Inputs (``inputs/data/``, never edited):
 
-* ``crimes_campinas_2022_2024.csv.bak`` — 2022–2024 extract (origin unknown,
+* ``crimes_campinas_2022_2024.csv.bak``: the 2022-2024 extract (origin unknown,
   see ``docs/data/ssp_raw_inputs.md``); already restricted to
   ``NOME_MUNICIPIO_CIRCUNSCRICAO == "CAMPINAS"``.
-* ``SPDadosCriminais_2025.xlsx`` — statewide 2025 SPDados file, two
+* ``SPDadosCriminais_2025.xlsx``: the statewide 2025 SPDados file, two
   half-year sheets.
 
-Rules (every rule is counted in the returned report):
+Rules (each is counted in the stage report):
 
 1. **One municipality filter for all years**:
-   ``NOME_MUNICIPIO_CIRCUNSCRICAO == "CAMPINAS"`` — the municipality of the
+   ``NOME_MUNICIPIO_CIRCUNSCRICAO == "CAMPINAS"``, the municipality of the
    police station with jurisdiction over the *place of the fact*. The
    analysis assigns events to Campinas tracts by location, so a
    place-of-fact filter is the consistent one; it is also the only filter
-   that can be applied to 2022–2024, because the ``.bak`` contains no other
+   that can be applied to 2022-2024, because the ``.bak`` contains no other
    municipality's rows.
 2. **Missing tokens**: ``''``, ``'NULL'`` and the ``'NUL,L'`` artefact become
    missing in every column. The redaction text ``VEDAÇÃO DA DIVULGAÇÃO DOS
@@ -68,7 +67,7 @@ LON_RANGE = (-47.5, -46.7)
 
 
 # --------------------------------------------------------------------------- #
-#  readers — every value comes back as a string (or NA), raw tokens preserved
+#  readers: every value comes back as a string (or NA), raw tokens preserved
 # --------------------------------------------------------------------------- #
 def _to_text(v) -> object:
     if v is None or (isinstance(v, float) and np.isnan(v)):
@@ -191,47 +190,6 @@ def normalise_hour(s: pd.Series) -> tuple[pd.Series, dict]:
     return out.mask(bad, t), {"hour_reformatted": int((ok & (t.str.len() > 5)).sum()),
                               "hour_nonzero_seconds": int((m[2].notna() & m[2].ne("00")).sum()),
                               "hour_unparsed_kept": int(bad.sum())}
-
-
-# --------------------------------------------------------------------------- #
-#  pipeline
-# --------------------------------------------------------------------------- #
-def build_crimes_table(*, csv_2022_2024: str | Path = SSP_CSV_2022_2024,
-                       xlsx_2025: str | Path = SSP_XLSX_2025) -> tuple[pd.DataFrame, dict]:
-    report: dict = {"filter": f"{MUNICIPALITY_COL} == {MUNICIPALITY!r}"}
-    a = read_2022_2024(csv_2022_2024)
-    b = read_2025_xlsx(xlsx_2025)
-    report["rows_read"] = {"2022_2024_csv": int(len(a)),
-                           "2025_xlsx_statewide": int(b.attrs["rows_read_statewide"]),
-                           "2025_xlsx_campinas_candidates": int(len(b))}
-
-    # the two candidate municipality fields, compared on the 2025 file
-    circ, muni = municipality_mask(b), municipality_mask(b, "NOME_MUNICIPIO")
-    report["xlsx_filter_comparison"] = {
-        "circunscricao_campinas": int(circ.sum()), "registro_campinas": int(muni.sum()),
-        "cd_ibge_3509502": int(b["CD_IBGE"].eq("3509502").sum()),
-        "both": int((circ & muni).sum()),
-        "circunscricao_only_kept": int((circ & ~muni).sum()),
-        "registro_only_dropped": int((muni & ~circ).sum()),
-    }
-    report["filter_diff_rows"] = pd.concat([
-        b[circ & ~muni].assign(FILTER_DIFF="kept: circunscricao only"),
-        b[muni & ~circ].assign(FILTER_DIFF="dropped: registro only"),
-    ])[["FILTER_DIFF", "NUM_BO", "ANO_BO", "NOME_DELEGACIA", "NOME_MUNICIPIO", MUNICIPALITY_COL,
-        "NATUREZA_APURADA", "LATITUDE", "LONGITUDE"]]
-    a_circ = municipality_mask(a)
-    report["csv_rows_failing_filter"] = int((~a_circ).sum())
-
-    df = pd.concat([a[a_circ], b[circ].drop(columns="CD_IBGE")], ignore_index=True)
-    report["rows_after_filter"] = {"2022_2024_csv": int(a_circ.sum()), "2025_xlsx": int(circ.sum()),
-                                   "total": int(len(df))}
-    df, miss = normalise_missing(df)
-    report.update(miss)
-    df, coords = parse_coordinates(df)
-    report["coord_status"] = coords
-    df["HORA_OCORRENCIA_BO"], hours = normalise_hour(df["HORA_OCORRENCIA_BO"])
-    report.update(hours)
-    return df[COLUMNS + ["COORD_STATUS", "SOURCE"]], report
 
 
 def write_crimes_csv(df: pd.DataFrame, path: str | Path) -> None:

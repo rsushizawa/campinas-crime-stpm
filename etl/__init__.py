@@ -1,7 +1,10 @@
-"""campinas-crime-stpm ETL — flat extract functions + a linear rebuild script.
+"""ETL of campinas-crime-stpm: raw sources to the PostGIS warehouse.
 
-    from etl import sources, taxonomy
-    from etl.postgis import write_gdf, write_df
-
-Run the whole pipeline with ``python scripts/02_clean/load_database.py``.
+    pipeline   Step / Pipeline / StepResult / RejectBuffer (pipes and filters)
+    steps/     one module per stage: acquire, clean, units (treatment rules 1-22)
+    load       write the release (rules 23-25) and the build row
+    schemas    pandera checks on the loaded warehouse (stage 5)
+    profile    data profile of the loaded tables
+    acquire, clean, census, sources, postgis
+               the rule functions and source readers the steps call
 """

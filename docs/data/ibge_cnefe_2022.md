@@ -101,8 +101,4 @@ proxy**. It is not a commerce-specific category.
 
 | Code | Columns used |
 |---|---|
-| `etl/sources.py:extract_cnefe`, which feeds `dim_cnefe_enderecos` in `scripts/02_clean/load_database.py` | `COD_UNICO_ENDERECO, COD_SETOR, CEP, DSC_LOCALIDADE, NV_GEO_COORD, COD_TIPO_ESPECI, DSC_ESTABELECIMENTO, COD_ESPECIE`, geometry; plus `grid_id` (point-in-polygon) |
-| `database/enrich.sql` (`vw_sector_features`, `vw_grid_features`) | `cod_especie` ∈ {4, 5, 6, 8}, `cd_setor` / `grid_id` |
-| `crime/data/loaders.py:load_cnefe_points` (through `PostGISSource.cnefe_points`) | `cod_especie`, geometry |
-| `crime/data/cleaning.py:commercial_counts` | `COD_UNICO_ENDERECO, COD_ESPECIE`, geometry (the file is read directly, with `where COD_ESPECIE = '6'`) |
-| `crime/data/cleaning.py:cnefe_poi_points` → `crime.data.cnefe_poi_points` / `unit_poi_counts` (notebooks) | `COD_UNICO_ENDERECO, COD_ESPECIE`, geometry (espécies 4, 5, 6, 8; assigned to tracts by point-in-polygon, to UTBs as the crime points) |
+| `etl/census.py:cnefe_poi_points`, read by `etl/steps/units.py:PointsOfInterest`, which feeds the warehouse table `poi` and the POI counts of `dim_census_tract` | `COD_UNICO_ENDERECO, COD_ESPECIE`, geometry (espécies 4, 5, 6, 8; deduplicated on address and use type, rule 22; assigned to tracts by point-in-polygon) |

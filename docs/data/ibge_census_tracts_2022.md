@@ -20,7 +20,7 @@ This file is the spatial unit of the primary analysis: the 2022 census tracts
 Each row is one tract polygon. The file has **2,593 rows but 2,592 distinct
 `code_tract`**: tract `350950210000134` is stored as two separate polygons
 (41,209 m² and 73,630 m²). `extract_census_tracts` dissolves these on
-`cd_setor`, which leaves 2,592 tracts (`len(crime.data.load_units("tract"))`).
+`cd_setor`, which leaves 2,592 tracts (`len(Warehouse().census_tracts())`).
 
 All geometries are `MultiPolygon`. None is null, empty or invalid. The total
 area is 794.80 km² in EPSG:31983. The IBGE *Agregados* `AREA_KM2` sums to
@@ -46,9 +46,8 @@ The column names come from `geobr`. The official definitions are in IBGE's
 
 | Code | Columns used |
 |---|---|
-| `etl/sources.py:extract_census_tracts`, which feeds `dim_setor_censitario` in `scripts/02_clean/load_database.py` | `code_tract→cd_setor`, `name_muni→nm_municipio`, `name_district→nm_distrito`, `zone→situacao`, `geometry` |
-| `crime/data/cleaning.py:build_tract_attributes` (through the extractor) | `cd_setor`, `geometry` |
-| `crime/data/units.py:unit_polygons` → `crime.data.load_units("tract")` (through the extractor) | the tract support of the notebooks |
+| `etl/sources.py:extract_census_tracts`, read by `etl/steps/units.py:LoadTracts`, which feeds `dim_census_tract` | `code_tract→census_tract_id`, `name_district→district`, `zone→situation`, `geometry` (stored in EPSG:31983) |
+| `crime.data.Warehouse.census_tracts` | the tract unit of the notebooks |
 
-The crime-to-tract assignment (`etl/postgis.py:assign_unit`) is a
+The crime-to-tract assignment (`etl/postgis.py:assign_unit`, called by `AssignTract`) is a
 point-in-polygon join with `predicate='within'` that keeps the first match.

@@ -62,7 +62,6 @@ Rural 58), and the region, state, district and other names and codes.
 ## Code that reads it
 
 - `etl/sources.py:extract_census_2022` produces `cd_setor`,
-  `populacao_total` (`V0001`) and `dom_total` (`V0007`). These are merged into
-  `dim_setor_censitario` in `scripts/02_clean/load_database.py`, and `vw_sector_features.pop_total`
-  is the population denominator of `crime_rate` / `crime_rate_eb`.
-- `crime/data/cleaning.py:tract_attributes` produces `pop_total`.
+  `populacao_total` (`V0001`) and `dom_total` (`V0007`).
+- `etl/census.py:tract_attributes` (units stage) stores them as `population`
+  and `households` in `dim_census_tract`.

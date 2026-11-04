@@ -18,7 +18,7 @@ dependencies = [
     "scikit-learn==1.7.2",
     "statsmodels==0.15.0",
     "matplotlib==3.10.6",
-    "pyogrio==0.13.0",             # read directly (CNEFE GeoJSON, crime.data.cleaning)
+    "pyogrio==0.13.0",             # read directly (CNEFE GeoJSON, etl/census.py)
     "pyarrow>=15",                 # parquet (cleaned bulletins, tract-attribute cache)
     # --- analysis libraries the notebooks call directly
     "pointpats>=2.6",
@@ -31,12 +31,13 @@ dependencies = [
     "ipykernel>=6.29",
     "nbconvert>=7.16",
     "nbclient>=0.10",
+    "pydantic==2.14.1",
 ]
 
 [project.optional-dependencies]
 # acquire / clean / validate stages (scripts/01_acquire … 03_test)
 etl = ["geobr>=0.2", "pandera>=0.20", "python-calamine>=0.2"]
-# PostGIS warehouse: load_database.py, validate_data.py (with DB), crime.load_sectors / load_grid ...
+# PostGIS warehouse: the load stage and crime.data.Warehouse
 db = ["SQLAlchemy==2.0.43", "psycopg2-binary==2.9.12"]
 dev = ["pytest>=8", "ruff>=0.6"]
 all = ["campinas-crime-stpm[etl,db]"]

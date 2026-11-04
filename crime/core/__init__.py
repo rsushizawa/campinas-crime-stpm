@@ -1,14 +1,8 @@
-"""Core: configuration and the warehouse loader's container.
+"""Core: configuration and the crime taxonomy. No I/O.
 
-No I/O and no heavy dependencies beyond pandas/geopandas — ``crime.data``
-depends on this subpackage, never the reverse.
-
-    config     paths, CRS constants, ``DBConfig``, ``Settings``, ``engine``
-    metadata   ``DatasetMeta`` — what was loaded (support, years, crime filter, source)
-    dataset    ``Dataset`` — gdf + events + overlay + header (returned by ``load_sectors``)
+    config     paths, CRS, study window, schema and data versions, database settings
+    taxonomy   offence names to slugs and crime groups; maximum penalty per slug
 """
-from crime.core.config import DBConfig, Settings
-from crime.core.dataset import Dataset
-from crime.core.metadata import DatasetMeta
+from crime.core.config import DBConfig
 
-__all__ = ["DBConfig", "Settings", "Dataset", "DatasetMeta"]
+__all__ = ["DBConfig"]

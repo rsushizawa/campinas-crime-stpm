@@ -1,34 +1,32 @@
 # Datasheet: property-crime tract × month cube, 2022–2025 (primary EHSA input)
 
 This is the assembled dataset the primary Emerging Hot Spot Analysis (EHSA)
-runs on. It is built in memory by `crime.data.unit_counts` (called by the
-EHSA notebooks `notebooks/06*`), from the scripted, deduplicated bulletins
-(one row per bulletin; see [ssp_bulletins_clean.md](ssp_bulletins_clean.md)).
-It is not snapshotted to disk.
+runs on. The warehouse builds it on request (`Warehouse.counts`, called by
+`notebooks/06_ehsa`) from `fact_bulletin`, the deduplicated bulletins (one row
+per bulletin; see [ssp_bulletins_clean.md](ssp_bulletins_clean.md)). It is not
+stored as a table.
 
-All numbers on this page were recomputed on 2026-10-30 from
-`outputs/data/bulletins_clean.parquet`, and re-checked on 2026-10-31 with the
-code below (same values); they agree with `outputs/data/funnel.json`.
+All numbers on this page were recomputed on 2026-10-30 and re-checked on
+2026-11-03 against the warehouse release data-v1.0.0 (same values); they agree
+with the funnel in the warehouse's `build` table.
 
 ## How it is built
 
 ```python
-from crime.data import unit_counts
-cube = unit_counts("tract", "property", freq="Q")   # primary time unit; "M" for months
+from crime.data import CrimeQuery, Warehouse
+cube = Warehouse().counts(CrimeQuery(crime_group="property", time_unit="quarter"))   # or "month"
 ```
 
-1. **Bulletins.** `outputs/data/bulletins_clean.parquet`, one row per
-   `NUM_BO + ANO_BO + NOME_DELEGACIA`; offence = the one with the highest
-   maximum penalty (`etl/clean.py`).
-2. **Filter** (`crime.data.load_points`): `crime_group == "property"`; a usable
-   coordinate; occurrence date in 2022-01-01 … 2025-12-31; inside a 2022
-   tract (`cd_setor` not null, stage 02's assignment). The last condition is
-   applied on every support, so all supports count the same events.
-3. **Assign** each point to its tract: stage 02's point-in-polygon join
-   (`cd_setor`, `within`).
-4. **Bin** (`crime.data.unit_counts`): events per tract and calendar quarter
-   (`"Q"`, 16 bins) or month (`"M"`, 48 bins) of occurrence, zero-filled to
-   all 2,592 tracts and every bin.
+1. **Bulletins.** `fact_bulletin`, one row per `NUM_BO + ANO_BO +
+   NOME_DELEGACIA`; offence = the one with the highest maximum penalty
+   (`etl/clean.py`, rule 9).
+2. **Filter**: crime group `property` (`dim_offence`); occurrence date in
+   2022-01-01 to 2025-12-31; inside a 2022 tract (`census_tract_id` not null).
+3. **Assign** each point to its tract: the units stage's point-in-polygon join
+   (`within`, first match; rules 16 and 17).
+4. **Bin**: events per tract and calendar quarter (16 bins, `dim_date.quarter_start`)
+   or month (48 bins), zero-filled to all 2,592 tracts and every bin. The
+   result is long (one row per tract and bin); the notebook pivots it.
 
 ## What one cell is
 
@@ -106,7 +104,7 @@ Share of property bulletins in the window that reach the cube: 90,436 /
 
 | Item | Value |
 |---|---|
-| Producer | `crime.data.unit_counts` (in memory, called by `notebooks/06*`) |
-| Inputs | `outputs/data/bulletins_clean.parquet` (stage 02) and the 2022 tract polygons `inputs/data/geobr/census_tract_3509502_2022.parquet` (see [ibge_census_tracts_2022.md](ibge_census_tracts_2022.md)) |
-| Snapshot | None (built in memory). Notebook results in `outputs/nb/<notebook>/`, git-ignored (`/outputs/*`) |
+| Producer | `crime.data.Warehouse.counts` (called by `notebooks/06_ehsa`) |
+| Inputs | `fact_bulletin`, `dim_date` and the 2022 tract polygons `inputs/data/geobr/census_tract_3509502_2022.parquet` (see [ibge_census_tracts_2022.md](ibge_census_tracts_2022.md)) |
+| Snapshot | None (built on request from the warehouse). Notebook results in `outputs/nb/<notebook>/`, git-ignored (`/outputs/*`) |
 | History | Before the bulletin deduplication (IC-Crime repository, tag `archive/pre-reset-2026-10-30`) the cube counted bulletin × offence records: 90,486 instead of 90,436 |

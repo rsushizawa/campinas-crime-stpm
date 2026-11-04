@@ -61,7 +61,5 @@ nominal R$ of the 2022 reference date. It is not per-capita income.
 
 - `etl/sources.py:extract_income_2022` reads `CD_SETOR`, `V06004` and
   `V06006`.
-- `crime/data/cleaning.py:tract_attributes` uses these through
-  `build_tract_attributes`.
-- **Not loaded by `scripts/02_clean/load_database.py`.** The database's `income_mean` column is
-  still the mislabelled UTB count (see [campinas_utb.md](campinas_utb.md)).
+- `etl/census.py:tract_attributes` (units stage) stores them as
+  `income_head_mean` and `income_head_median` in `dim_census_tract`.

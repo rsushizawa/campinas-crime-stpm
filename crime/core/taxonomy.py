@@ -1,10 +1,10 @@
-"""Crime taxonomy: translate raw SSP-SP ``natureza_apurada`` strings into
-canonical slugs / groups and seed ``dim_crime_taxonomy``.
+"""Crime taxonomy: raw SSP-SP ``NATUREZA_APURADA`` names to offence slugs and crime groups.
 
-    from etl.taxonomy import to_slug, to_group, taxonomy_rows
+    from crime.core.taxonomy import to_slug, to_group, taxonomy_rows
 
-``to_slug`` / ``to_group`` translate one raw string (None when unknown);
-``taxonomy_rows`` returns the DataFrame loaded into ``dim_crime_taxonomy``.
+``to_slug`` and ``to_group`` translate one raw name (``None`` when unknown;
+the clean stage then stops, rule 11). The warehouse table ``dim_offence`` is
+built from these tables by :func:`etl.load.offence_dimension`.
 """
 import re
 import unicodedata
@@ -126,7 +126,7 @@ def to_group(raw: str) -> str | None:
 
 
 def taxonomy_rows() -> pd.DataFrame:
-    """Rows for ``dim_crime_taxonomy`` — the DB's single source of truth."""
+    """Slug, group and labels of every slug, one row each (for documentation and audits)."""
     return pd.DataFrame([
         {
             "crime_slug": slug,
@@ -139,7 +139,7 @@ def taxonomy_rows() -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------- #
-#  Maximum penalty per slug — the one-row-per-bulletin rule (IC-Crime#13)
+#  Maximum penalty per slug: the one-row-per-bulletin rule (IC-Crime#13)
 # --------------------------------------------------------------------------- #
 # A bulletin (NUM_BO + ANO_BO + NOME_DELEGACIA) can carry several offence
 # records. ``collapse_bulletins`` keeps the record whose offence has the highest
@@ -179,7 +179,7 @@ MAX_PENALTY = {
 
 
 def is_generic(slug: str) -> bool:
-    """``*_outros`` / ``*_outras`` — the residual slug of an offence family."""
+    """``*_outros`` / ``*_outras``: the residual slug of an offence family."""
     return slug.endswith("_outros") or slug.endswith("_outras")
 
 
@@ -193,7 +193,7 @@ def severity_key(slug: str | None) -> tuple[float, int]:
     if slug is None or (isinstance(slug, float) and slug != slug):
         return (float("-inf"), 0)
     if slug not in MAX_PENALTY:
-        raise KeyError(f"slug {slug!r} has no entry in etl.taxonomy.MAX_PENALTY")
+        raise KeyError(f"slug {slug!r} has no entry in crime.core.taxonomy.MAX_PENALTY")
     return (MAX_PENALTY[slug][0], 0 if is_generic(slug) else 1)
 
 

@@ -1,54 +1,105 @@
-"""The crime filter, as a value.
+"""The request a notebook sends to the warehouse.
 
-``CrimeQuery`` is the one description of *which crimes* a dataset holds —
-year window, crime type(s), crime group, location type — and the one place
-that turns it into a SQL ``WHERE`` clause. Every value is a bound parameter
-(no string interpolation of user input).
+    from crime.data import CrimeQuery
+    q = CrimeQuery(crime_group="property", time_unit="quarter")
 
-    q = CrimeQuery(years=(2022, 2025), crime_slug=["furto_outros", "roubo_outros"])
-    sql, params = q.where("cd_setor IS NOT NULL")
+A :class:`CrimeQuery` names *which* bulletins to count (crime group, offence
+slugs, location types, period) and *how* to aggregate them (spatial unit,
+time unit). Validation is done by pydantic: an unknown group, a slug outside
+the group, a period outside the study window or an unknown time unit raise
+:class:`pydantic.ValidationError` before any database call (rule 28).
+
+References
+----------
+pydantic documentation, "Models": https://docs.pydantic.dev/latest/concepts/models/
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import datetime as dt
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+from crime.core.config import DATE_END, DATE_START
+
+CrimeGroup = Literal["all", "property", "bodily_harm", "traffic", "drug", "violent", "sexual"]
+SpatialUnit = Literal["census_tract", "city"]
+TimeUnit = Literal["total", "month", "quarter", "year"]
+
+#: Groups with published locations: the spatial analyses use these ("all" is their union).
+SPATIAL_GROUPS: tuple[str, ...] = ("all", "property", "bodily_harm", "traffic", "drug", "violent")
+#: Every group of the monthly series; ``sexual`` has no coordinates.
+TEMPORAL_GROUPS: tuple[str, ...] = (*SPATIAL_GROUPS, "sexual")
 
 
-@dataclass(frozen=True)
-class CrimeQuery:
-    years: tuple[int, int] | None = None
-    crime_slug: str | tuple[str, ...] | None = None
-    crime_group: str | None = None
-    location_type: str | None = None
+class CrimeQuery(BaseModel):
+    """Which bulletins to count and how to aggregate them.
 
-    def __post_init__(self):
-        if isinstance(self.crime_slug, list):
-            object.__setattr__(self, "crime_slug", tuple(self.crime_slug))
+    Parameters
+    ----------
+    crime_group : str, default "all"
+        One of :data:`TEMPORAL_GROUPS`. ``"all"`` is every group.
+    crime_slug : tuple of str, optional
+        Restrict to these offence slugs (``dim_offence.crime_slug``). Each must
+        belong to ``crime_group`` unless the group is ``"all"``.
+    location_type : tuple of str, optional
+        Restrict to these location types (``fact_bulletin.location_type``, the
+        published ``DESCR_SUBTIPOLOCAL`` text).
+    start, end : date
+        Occurrence-date period, both ends included; must lie in the study
+        window 2022-01-01 to 2025-12-31 (the default).
+    unit : {"census_tract", "city"}, default "census_tract"
+        ``"census_tract"`` counts the spatial event set (bulletins geocoded
+        inside a 2022 tract) per tract. ``"city"`` counts every bulletin in the
+        window, geocoded or not, as one series for Campinas.
+    time_unit : {"total", "month", "quarter", "year"}, default "total"
+        Width of the time bins. ``"total"`` is one bin for the whole period.
 
-    @property
-    def slugs(self) -> tuple[str, ...]:
-        if not self.crime_slug:
-            return ()
-        return (self.crime_slug,) if isinstance(self.crime_slug, str) else tuple(self.crime_slug)
+    Examples
+    --------
+    >>> CrimeQuery(crime_group="property", time_unit="quarter")
+    >>> CrimeQuery(crime_group="all", unit="city", time_unit="month")
+    >>> CrimeQuery(crime_slug=("furto_veiculo", "roubo_veiculo"))
+    """
 
-    def where(self, *required: str) -> tuple[str, dict]:
-        """``("WHERE ...", params)``. ``required`` are fixed leading clauses
-        (e.g. ``"lat IS NOT NULL"``). The year window filters on both the
-        bulletin year (``ano_bo``) and the occurrence date, so a crime
-        reported in January for the previous December is excluded."""
-        clauses = list(required)
-        params: dict = {}
-        if self.years:
-            lo, hi = int(self.years[0]), int(self.years[1])
-            clauses.append("ano_bo BETWEEN :yr_lo AND :yr_hi")
-            clauses.append("data_ocorrencia >= :date_lo AND data_ocorrencia < :date_hi")
-            params.update(yr_lo=lo, yr_hi=hi, date_lo=f"{lo}-01-01", date_hi=f"{hi + 1}-01-01")
-        if self.slugs:
-            clauses.append("crime_slug IN (" + ", ".join(f":slug_{i}" for i in range(len(self.slugs))) + ")")
-            params.update({f"slug_{i}": s for i, s in enumerate(self.slugs)})
-        if self.crime_group:
-            clauses.append("crime_group = :crime_group")
-            params["crime_group"] = self.crime_group
-        if self.location_type:
-            clauses.append("subtipo_local = :location_type")
-            params["location_type"] = self.location_type
-        return "WHERE " + " AND ".join(clauses), params
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    crime_group: CrimeGroup = "all"
+    crime_slug: tuple[str, ...] | None = None
+    location_type: tuple[str, ...] | None = None
+    start: dt.date = dt.date.fromisoformat(DATE_START)
+    end: dt.date = dt.date.fromisoformat(DATE_END)
+    unit: SpatialUnit = "census_tract"
+    time_unit: TimeUnit = "total"
+
+    @field_validator("crime_slug", "location_type", mode="before")
+    @classmethod
+    def _one_or_many(cls, v):
+        return (v,) if isinstance(v, str) else v
+
+    @field_validator("crime_slug")
+    @classmethod
+    def _known_slugs(cls, v):
+        if v is None:
+            return v
+        from crime.core.taxonomy import SLUG_TO_GROUP
+
+        unknown = sorted(set(v) - set(SLUG_TO_GROUP))
+        if unknown:
+            raise ValueError(f"unknown crime_slug {unknown}; see dim_offence")
+        return tuple(sorted(set(v)))
+
+    @model_validator(mode="after")
+    def _consistent(self):
+        lo, hi = dt.date.fromisoformat(DATE_START), dt.date.fromisoformat(DATE_END)
+        if not lo <= self.start <= self.end <= hi:
+            raise ValueError(f"need {lo} <= start <= end <= {hi}, got {self.start} .. {self.end}")
+        if self.crime_slug and self.crime_group != "all":
+            from crime.core.taxonomy import SLUG_TO_GROUP
+
+            other = [s for s in self.crime_slug if SLUG_TO_GROUP[s] != self.crime_group]
+            if other:
+                raise ValueError(f"crime_slug {other} not in crime_group {self.crime_group!r}")
+        if self.unit == "census_tract" and self.crime_group == "sexual":
+            raise ValueError("sexual bulletins have no published coordinates; use unit='city'")
+        return self

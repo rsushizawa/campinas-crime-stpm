@@ -5,7 +5,7 @@ Layers (a module may import only from its own layer or layers to its left):
     core  <-  data
 
 The package is a data layer only: the statistics live in ``notebooks/``,
-which call the libraries (esda, libpysal, pointpats, ...) directly. The
+which call the libraries (esda, libpysal, pymannkendall, ...) directly. The
 removed analysis layers (``crime.esri`` / ``points`` / ``stats`` / ``viz``)
 and the earlier removed arms (GeoShapley / prediction, NKDE and the street
 network, ...) must not come back as imports. Checked statically with ``ast``
@@ -27,7 +27,10 @@ RANK = {"core": 0, "data": 1}
 
 
 #: modules / third-party packages of the removed arms
-REMOVED = ("crime.esri", "crime.points", "crime.stats", "crime.viz", "crime.core.cube",
+REMOVED = ("crime.data.api", "crime.data.units", "crime.data.cleaning", "crime.data.loaders",
+           "crime.data.postgis", "crime.data.catalog", "crime.data.provenance", "crime.core.dataset",
+           "crime.core.metadata", "etl.taxonomy", "tobler", "pointpats",
+           "crime.esri", "crime.points", "crime.stats", "crime.viz", "crime.core.cube",
            "crime.data.artifacts", "crime.data.spec", "crime.geoshapley", "crime.esri.nkde", "crime.esri.permutation", "crime.esri.transitions",
            "crime.data.osm", "crime.data.segments", "crime.stats.simulation", "crime.viz.voxel",
            "crime.viz.imagery", "osmnx", "networkx", "ee", "geemap", "xgboost", "lightgbm",
@@ -58,7 +61,7 @@ def _modules():
 @pytest.mark.parametrize("path,module", list(_modules()), ids=lambda x: str(x))
 def test_layering(path, module):
     src = _layer(module)
-    if src is None:                      # crime/__init__.py is the facade — may point anywhere
+    if src is None:                      # crime/__init__.py: only the version
         return
     bad = []
     for line, imported in _imports(path):
@@ -95,18 +98,9 @@ def test_import_crime_is_light():
 
 
 def test_every_export_resolves():
-    """Every export imports, except those needing an optional extra that is not
-    installed (``db``: sqlalchemy / psycopg2)."""
-    code = ("import crime\n"
-            "OPT = {'sqlalchemy', 'psycopg2'}\n"
-            "missing = []\n"
-            "for n in crime.__all__:\n"
-            "    try:\n"
-            "        getattr(crime, n)\n"
-            "    except ImportError as e:\n"
-            "        if (e.name or '').split('.')[0] not in OPT: missing.append(n)\n"
-            "    except AttributeError:\n"
-            "        missing.append(n)\n"
+    """Every name in ``crime.data.__all__`` and ``crime.core.__all__`` imports."""
+    code = ("import crime.core, crime.data\n"
+            "missing = [n for m in (crime.core, crime.data) for n in m.__all__ if not hasattr(m, n)]\n"
             "print(','.join(missing))")
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert out.returncode == 0 and out.stdout.strip() == "", out.stdout + out.stderr

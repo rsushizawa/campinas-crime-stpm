@@ -1,5 +1,11 @@
 # Campinas UTB polygons (`inputs/data/map.geojson`)
 
+> **Removed (author decision, 2026-11-03).** The paper analyses census tracts
+> only, so the UTB polygons are no longer read and the files were removed from
+> `inputs/data/` (last SHA-256 in [`inputs/data/README.md`](../../inputs/data/README.md);
+> recoverable from the tag `archive/pre-warehouse-2026-11-03`). The text below
+> describes the files as they were.
+
 This file holds 93 *Unidades Territoriais Básicas* (UTB), the planning zones
 of Campinas, with census attributes. In the analysis it is used only as a map
 overlay (UTB boundaries). Its `rendatemei` field also feeds the mislabelled

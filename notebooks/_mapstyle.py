@@ -7,7 +7,7 @@ Plain matplotlib / geopandas / contextily; restores the look of the earlier ``cr
     import _mapstyle as ms
     ms.setup()
     ms.plot_categories(ax, units, labels, STYLES)        # STYLES: label -> (facecolor, hatch)
-    ms.decorate(ax, units.crs, overlay=utbs)             # basemap, UTB lines, graticule, scale, north
+    ms.decorate(ax, tracts.crs)                          # basemap, graticule, scale, north
 """
 import math
 
@@ -77,7 +77,7 @@ def add_basemap(ax, crs, zoom="auto"):
 
 
 def add_overlay(ax, gdf, color=INK, linewidth=0.4):
-    """Boundary lines (e.g. UTBs) on top of the map."""
+    """Boundary lines of another layer drawn on top of the map."""
     gdf.boundary.plot(ax=ax, color=color, linewidth=linewidth, zorder=6)
 
 

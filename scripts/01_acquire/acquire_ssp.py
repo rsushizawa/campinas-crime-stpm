@@ -1,27 +1,20 @@
-"""Stage 01 — Acquire: raw SSP-SP extracts -> outputs/data/crimes_campinas.csv.
+"""Stage 1, acquire: raw SSP-SP extracts to outputs/data/crimes_campinas.csv (``make acquire``).
 
     python scripts/01_acquire/acquire_ssp.py
 
-Reads the two raw inputs in ``inputs/data/`` (see ``etl/acquire.py`` for the
-rules), writes the scripted offence-record table, an acquire report and a
-row-for-row comparison against the hand-assembled legacy
-``inputs/data/crimes_campinas.csv`` (commit 6891c8b).
+Runs :func:`etl.steps.acquire.acquire_pipeline` (rules 1 to 8) and writes the
+offence-record table, ``acquire_report.json`` and a row-for-row comparison
+with the hand-assembled legacy ``inputs/data/crimes_campinas.csv`` (commit
+6891c8b). Rejected rows and the stage report go to ``outputs/data/staging/acquire/``.
 """
-import hashlib
 import json
 
 import pandas as pd
 
 from crime.core.config import CRIMES_CSV, LEGACY_CRIMES_CSV, OUTPUT_DATA_DIR, SSP_CSV_2022_2024, SSP_XLSX_2025
 from etl import acquire
-
-
-def sha256(path) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
+from etl.stage_io import save_stage
+from etl.steps.acquire import STAGE, RawInputs, acquire_pipeline, acquire_report, sha256
 
 
 def _row_hash(df: pd.DataFrame) -> pd.Series:
@@ -57,7 +50,9 @@ def compare_with_legacy(new: pd.DataFrame) -> dict:
 
 
 def main() -> None:
-    df, report = acquire.build_crimes_table()
+    result = acquire_pipeline().run(RawInputs())
+    df = result.kept
+    report = acquire_report(result.extra)
     diff_rows = report.pop("filter_diff_rows")
     acquire.write_crimes_csv(df, CRIMES_CSV)
     OUTPUT_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -71,7 +66,8 @@ def main() -> None:
                         "sha256": sha256(CRIMES_CSV)}
     report["vs_legacy"] = compare_with_legacy(back)
     (OUTPUT_DATA_DIR / "acquire_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
-    print(json.dumps(report, indent=2, ensure_ascii=False))
+    save_stage(STAGE, result, "Acquire: raw SSP-SP extracts to offence records (rules 1-8)")
+    print(f"wrote {CRIMES_CSV} ({len(df):,} offence records, SHA-256 {report['output']['sha256'][:12]})")
 
 
 if __name__ == "__main__":

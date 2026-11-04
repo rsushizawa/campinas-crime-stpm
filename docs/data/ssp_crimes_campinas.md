@@ -1,8 +1,8 @@
 # SSP-SP crime bulletins, Campinas 2022–2025 (`inputs/data/crimes_campinas.csv`)
 
 > **Update (2026-10-22):** this hand-assembled file is now **legacy**. The pipeline reads
-> the scripted `outputs/data/crimes_campinas.csv` (01_acquire) and the
-> one-row-per-bulletin `outputs/data/bulletins_clean.parquet` (02_clean); see
+>  the scripted `outputs/data/crimes_campinas.csv` (acquire stage) and the
+> warehouse table `fact_bulletin`, one row per bulletin; see
 > [ssp_bulletins_clean.md](ssp_bulletins_clean.md). The numbers below describe
 > the legacy file and are kept as its datasheet.
 
@@ -147,16 +147,16 @@ of the data is prohibited") is a third code.
 
 The first three readers below take the **scripted**
 `outputs/data/crimes_campinas.csv` (same 25 columns; `crime.core.config.CRIMES_CSV`),
-not this legacy file; the analysis (`crime.data`, used by `notebooks/`) reads
-only `outputs/data/bulletins_clean.parquet`. The last row is the only reader of
-this file.
+not this legacy file; the analysis (`crime.data.Warehouse`, used by
+`notebooks/`) reads only the warehouse. The last row is the only reader of this
+file.
 
 | Code | Columns used |
 |---|---|
 | `etl/sources.py:extract_crimes` | all columns. The redacted `LATITUDE` becomes NaN, then lat/long are made numeric. `NUM_BO`, `ANO_BO`, `MES_/ANO_ESTATISTICA` are typed; `DATA_REGISTRO`, `DATA_OCORRENCIA_BO` are parsed |
-| `scripts/02_clean/load_database.py:main` → `fato_crimes` | rows with non-null lat/long only. Uses `NUM_BO, ANO_BO, DATA_OCORRENCIA_BO, HORA_OCORRENCIA_BO, DESC_PERIODO, DESCR_SUBTIPOLOCAL, BAIRRO, NATUREZA_APURADA, LATITUDE, LONGITUDE`, plus `cd_setor`/`grid_id` (point-in-polygon) and `crime_slug`/`crime_group` (`etl/taxonomy.py`) |
-| `crime/data/cleaning.py:RawPaths.crimes`, `filter_events` | `data_ocorrencia` (renamed), `crime_slug` |
+| `etl/load.py:fact_rows` → `fact_bulletin` (after the clean and units stages) | every in-window bulletin, geocoded or not. Uses `NUM_BO, ANO_BO, NOME_DELEGACIA, DATA_OCORRENCIA_BO, HORA_OCORRENCIA_BO, DESC_PERIODO, DATA_REGISTRO, DESCR_SUBTIPOLOCAL, BAIRRO, NATUREZA_APURADA, LATITUDE, LONGITUDE, COORD_STATUS, SOURCE`, plus `census_tract_id` (point-in-polygon) and `crime_slug` (`crime/core/taxonomy.py`) |
 | `scripts/01_acquire/acquire_ssp.py:compare_with_legacy` | all 25 columns: row-for-row comparison with the scripted `outputs/data/crimes_campinas.csv` (`outputs/data/acquire_report.json → vs_legacy`). This is the file's only remaining use |
 
-The ETL never loads `DATA_REGISTRO`, `RUBRICA`, `DESCR_CONDUTA`, `LOGRADOURO`,
-the `NOME_*` station columns or `*_ESTATISTICA` into the database.
+The warehouse does not store `RUBRICA`, `DESCR_CONDUTA`, `LOGRADOURO`,
+`NUMERO_LOGRADOURO`, the `NOME_*` department and jurisdiction columns or
+`*_ESTATISTICA`.

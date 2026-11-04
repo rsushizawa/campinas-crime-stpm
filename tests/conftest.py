@@ -27,10 +27,12 @@ def _db_unreachable_reason() -> str | None:
         eng = create_engine(db.url, connect_args={"connect_timeout": 3})
         try:
             with eng.connect() as conn:
-                conn.execute(text("SELECT 1 FROM fato_crimes LIMIT 1"))
+                n = conn.execute(text("SELECT count(*) FROM build")).scalar_one()
+                if n != 1:
+                    raise RuntimeError("no loaded release (build row missing)")
         finally:
             eng.dispose()
-    except Exception as e:  # noqa: BLE001 — connection refused, auth failure, missing table ...
+    except Exception as e:  # noqa: BLE001 (connection refused, auth failure, missing table ...)
         return f"PostGIS not reachable at {db.host}:{db.port}/{db.database} ({type(e).__name__})"
     return None
 

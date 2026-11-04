@@ -2,7 +2,7 @@
 
 > **Removed** (owner decision, 2026-10-23, in the IC-Crime repository; recoverable from its history, tag `archive/pre-reset-2026-10-30`). It is not in this repository. Commerce per tract is now
 > counted from CNEFE 2022 `COD_ESPECIE == 6` addresses by point-in-polygon
-> (`crime.data.cleaning.commercial_counts`): 54,892 addresses in 2,228 tracts,
+> (`etl/census.py`): 54,892 addresses in 2,228 tracts,
 > against 43,408 `total_comercio` in this legacy file.
 
 ## What it is

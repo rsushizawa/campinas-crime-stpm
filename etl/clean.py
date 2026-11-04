@@ -5,8 +5,8 @@
 
 The acquired SSP-SP table has one row per *offence record*: a bulletin
 (``NUM_BO + ANO_BO + NOME_DELEGACIA``) carrying two offences appears twice.
-:func:`collapse_bulletins` keeps exactly one record per bulletin — the one
-whose offence has the highest maximum penalty (:data:`etl.taxonomy.MAX_PENALTY`),
+:func:`collapse_bulletins` keeps exactly one record per bulletin: the one
+whose offence has the highest maximum penalty (:data:`crime.core.taxonomy.MAX_PENALTY`),
 a specific slug beating a ``*_outros`` slug on a tie. If two records are still
 tied (same penalty, both specific or both generic) the first in source order
 is kept (owner-confirmed rule, also for cross-group ties such as
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from etl import taxonomy
+from crime.core import taxonomy
 
 BULLETIN_KEY = ["NUM_BO", "ANO_BO", "NOME_DELEGACIA"]
 

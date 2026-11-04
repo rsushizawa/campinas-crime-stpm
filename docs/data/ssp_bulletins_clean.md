@@ -1,10 +1,11 @@
 # SSP-SP bulletins, scripted acquire + one row per bulletin (`outputs/data/`)
 
-This page documents the two scripted tables that replace the
+This page documents the scripted acquire and clean stages that replace the
 hand-assembled `inputs/data/crimes_campinas.csv` as the source of every crime
 count. All numbers come from `outputs/data/acquire_report.json`,
-`dedup_report.json` and `funnel.json` written on 2026-10-22 by the stage
-scripts (`make acquire clean-data`).
+`dedup_report.json` and the funnel, first written on 2026-10-22 and reproduced
+unchanged by the warehouse release data-v1.0.0 on 2026-11-03 (`make load`).
+The treatment rules are numbered in [`docs/TREATMENTS.md`](../TREATMENTS.md).
 
 ## Stage 01 — acquire (`scripts/01_acquire/acquire_ssp.py`, rules in `etl/acquire.py`)
 
@@ -124,10 +125,11 @@ Conversely, 240 multi-group bulletins stay property and leave the other group
 All 728 repaired 2022 coordinates fall inside a 2022 tract; none of them is a
 property bulletin, so they do not change the property cube.
 
-## Validation (`scripts/03_test/validate_data.py`, `etl/schemas.py`)
+## Validation (`scripts/05_validate/validate_warehouse.py`, `etl/schemas.py`)
 
-pandera checks on the bulletin table and the cube input (parquet and
-PostGIS): unique bulletin key, slugs/groups in the taxonomy, no `(0,0)`,
-coordinates in the box or missing (and present iff `COORD_STATUS` is
-ok/fixed_decimal), occurrence date in the window and every point inside the
-union of 2022 tracts (cube input), counts equal to the funnel.
+pandera checks on the loaded `fact_bulletin`: unique bulletin key, slugs in the
+taxonomy, no `(0,0)`, coordinates in the box or missing (and present exactly
+when `coord_status` is ok or fixed_decimal), occurrence date in the window,
+row count equal to the funnel. The funnel stored in `build` must equal the
+funnel recomputed from the tables. Foreign keys and `CHECK` constraints in
+`database/schema.sql` hold the rest (rule 24).

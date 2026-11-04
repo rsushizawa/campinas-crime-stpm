@@ -53,21 +53,16 @@ The definitions are those of the IBGE dictionary
   ≥ 3. This is consistent with IBGE suppressing small non-zero counts. The
   exact IBGE suppression rule is **not verified here**.
 - How blanks are handled:
-  - `crime/data/cleaning.py:tract_attributes` sets the illiterate count to 0
-    when it is blank and the literate count is present (learner decision,
-    2026-10-15; see that module's docstring). Tracts with both counts blank
-    stay NaN.
-  - `database/enrich.sql` (`vw_sector_features.literacy_rate`) uses
-    `COALESCE(…, 0)` on both counts and returns NULL when their sum is 0.
-    This is the same result for these data.
+  - `etl/census.py:tract_attributes` sets the illiterate count to 0 when it
+    is blank and the literate count is present (author decision, 2026-10-15;
+    see that module's docstring). Tracts with both counts blank stay missing.
 
 ## Code that reads it
 
 - `etl/sources.py:extract_literacy` (`PAINEL_CSV`) reads `CD_SETOR` and the 8
-  `alfabetizacao_*` columns. It feeds `dim_setor_painel` in `scripts/02_clean/load_database.py`,
-  which the views turn into `literacy_rate`.
-- `scripts/02_clean/reload_painel.py:main` also reads it, through `extract_literacy`.
-- `crime/data/cleaning.py:RawPaths.painel` produces `literacy_rate`, from
+  `alfabetizacao_*` columns.
+- `etl/census.py:tract_attributes` (units stage) stores `literate_15_plus`,
+  `illiterate_15_plus` and `literacy_rate` in `dim_census_tract`, from
   `alfa_15_mais_sabe` and `alfa_15_mais_nao_sabe` only.
 
 **Suggested:** read V00900/V00901 straight from the IBGE
