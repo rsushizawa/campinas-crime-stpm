@@ -1,0 +1,94 @@
+support,group,unit_id,category,n_hot_bins,n_cold_bins,mk_s,mk_tau,mk_z,mk_p,category_fdr
+utb,bodily_harm,Pq. Valença/Pq. Itajaí,no pattern detected,0,0,408.0,0.3617021276595745,3.624406210767534,0.00028962609621019375,no pattern detected
+utb,bodily_harm,Joaquim Egídio,no pattern detected,0,0,-28.0,-0.024822695035460994,-0.2500071447964462,0.8025818233091138,no pattern detected
+utb,bodily_harm,UTR - Pedra Branca,no pattern detected,0,0,483.0,0.42819148936170215,4.292691507751369,1.7652018412306347e-05,no pattern detected
+utb,bodily_harm,Pq. Ecológico,no pattern detected,0,0,376.0,0.3333333333333333,3.34919341288075,0.0008104719725270382,no pattern detected
+utb,bodily_harm,UTR - Amarais / Barão Geraldo 1,sporadic cold spot,0,35,202.0,0.17907801418439717,1.8136343157253962,0.06973404367764169,no pattern detected
+utb,bodily_harm,UTR - Gargantilha / Sousas / Joaquim Egídio,persistent cold spot,0,47,-137.0,-0.12145390070921985,-1.2307314332466133,0.2184233276282841,sporadic cold spot
+utb,bodily_harm,UTR - Campo Grande 2,no pattern detected,0,0,166.0,0.14716312056737588,1.4743116521872761,0.14039769929409207,no pattern detected
+utb,bodily_harm,Fazenda Santa Elisa,no pattern detected,0,0,-410.0,-0.36347517730496454,-3.651300614094373,0.0002609156201305307,no pattern detected
+utb,bodily_harm,Jd. Santa Maria,no pattern detected,0,0,478.0,0.4237588652482269,4.280940453047782,1.861051553042614e-05,no pattern detected
+utb,bodily_harm,Swift/Jd.São Vicente/Jd.Esmeraldina,no pattern detected,7,0,448.0,0.3971631205673759,3.9812447019101183,6.855532760607908e-05,no pattern detected
+utb,bodily_harm,UTR - Amarais / Barão Geraldo 2,no pattern detected,0,0,103.0,0.09131205673758866,0.9118417003526642,0.3618520550547759,no pattern detected
+utb,bodily_harm,UTR - Samambaia,no pattern detected,0,0,158.0,0.1400709219858156,1.404625306573843,0.16013272732019512,no pattern detected
+utb,bodily_harm,MM-70,no pattern detected,0,0,478.0,0.4237588652482269,4.280940453047782,1.861051553042614e-05,no pattern detected
+utb,bodily_harm,UTR - Friburgo / Fogueteiro,no pattern detected,0,0,354.0,0.31382978723404253,3.1416172927774273,0.0016801749551282885,no pattern detected
+utb,bodily_harm,Distrito Industrial de Campinas,no pattern detected,0,0,534.0,0.4734042553191489,4.749849526139296,2.0356806449406406e-06,no pattern detected
+utb,bodily_harm,Aeroporto de Viracopos,no pattern detected,0,1,669.0,0.5930851063829787,5.967219938273402,2.41330022632269e-09,no pattern detected
+utb,bodily_harm,N. Campinas / Vila Brandina/ Jd. Flamboyant,no pattern detected,9,0,40.0,0.03546099290780142,0.3473293686910595,0.7283438895048626,no pattern detected
+utb,bodily_harm,Pq. Xangrilá,sporadic cold spot,0,12,-162.0,-0.14361702127659576,-1.4585024704047724,0.1447020947023454,no pattern detected
+utb,bodily_harm,Vila Nova / Guanabara/ Castelo,sporadic hot spot,41,0,252.0,0.22340425531914893,2.2367959306959913,0.02529968064001631,sporadic hot spot
+utb,bodily_harm,Pq. Imperador/ Notre Dame,no pattern detected,0,9,-62.0,-0.0549645390070922,-0.5467829159061096,0.5845278814976238,no pattern detected
+utb,bodily_harm,UTR - Descampado 1,no pattern detected,0,0,485.0,0.4299645390070922,4.321026708911179,1.553048717650718e-05,no pattern detected
+utb,bodily_harm,Bananal,no pattern detected,0,0,-283.0,-0.250886524822695,-2.63054055227832,0.008524919833947875,no pattern detected
+utb,bodily_harm,Galleria,no pattern detected,0,0,-86.0,-0.07624113475177305,-0.7635278106199552,0.4451486831181617,no pattern detected
+utb,bodily_harm,Ceasa,no pattern detected,0,0,0.0,0.0,0.0,1.0,no pattern detected
+utb,bodily_harm,Center Santa Genebra,no pattern detected,0,0,-248.0,-0.2198581560283688,-2.210709459672795,0.027055963043352227,no pattern detected
+utb,bodily_harm,UTR - Furnas / Tanquinho 2,sporadic cold spot,0,20,-275.0,-0.24379432624113476,-2.524479062880261,0.011586990681881515,no pattern detected
+utb,bodily_harm,UTR - Furnas / Tanquinho 1,no pattern detected,0,0,-289.0,-0.25620567375886527,-2.696854625964489,0.006999782127823595,no pattern detected
+utb,bodily_harm,Jd. das Bandeiras/ Jd. São José,sporadic hot spot,26,0,582.0,0.5159574468085106,5.172129595844734,2.3144096927829594e-07,no pattern detected
+utb,bodily_harm,Bairro das Palmeiras,no pattern detected,0,0,389.0,0.3448581560283688,3.4624919985710916,0.0005351978276775249,no pattern detected
+utb,bodily_harm,Jd. Maria Rosa/ Pq. São Paulo,sporadic hot spot,39,0,645.0,0.5718085106382979,5.731373452837126,9.962065838919898e-09,sporadic hot spot
+utb,bodily_harm,Jd. Fernanda/ Jd. Itaguaçu,no pattern detected,0,21,512.0,0.45390070921985815,4.567843929851751,4.927667107246236e-06,no pattern detected
+utb,bodily_harm,UTR - Campo Grande 3,no pattern detected,2,0,82.0,0.0726950354609929,0.7238878578875889,0.4691345849308499,no pattern detected
+utb,bodily_harm,Abaeté/Pedra Branca,no pattern detected,0,0,280.0,0.24822695035460993,2.4959843963706225,0.012560812667822052,no pattern detected
+utb,bodily_harm,Carlos Gomes/ Monte Belo,no pattern detected,0,0,-190.0,-0.16843971631205673,-1.8197207812323426,0.06880153695933955,no pattern detected
+utb,bodily_harm,UTR - Descampado 3,no pattern detected,0,0,478.0,0.4237588652482269,4.280940453047782,1.861051553042614e-05,no pattern detected
+utb,bodily_harm,Jd. Conceição-Sousas,no pattern detected,0,1,298.0,0.2641843971631206,2.683053455171541,0.007295332850859371,no pattern detected
+utb,bodily_harm,V. Costa e Silva/ Primavera/ Pq. Taquaral,no pattern detected,0,0,-295.0,-0.26152482269503546,-2.6279695962860594,0.008589619254345982,no pattern detected
+utb,bodily_harm,Jd. Miriam/ Alphaville Campinas,no pattern detected,0,1,-3.0,-0.0026595744680851063,-0.01792274916865904,0.9857004807156482,no pattern detected
+utb,bodily_harm,Jd. Nova Mercedes,sporadic hot spot,27,0,561.0,0.4973404255319149,4.984197785199415,6.221941035722267e-07,no pattern detected
+utb,bodily_harm,Swiss Park,sporadic hot spot,30,0,532.0,0.4716312056737589,4.727773168105268,2.269955645228805e-06,sporadic hot spot
+utb,bodily_harm,J. Santa Genebra/ Mansões Santo Antônio,no pattern detected,0,0,-95.0,-0.08421985815602837,-0.8400114841648862,0.4009019475228599,no pattern detected
+utb,bodily_harm,Jd. N. Sra. Auxiliadora/ Taquaral,persistent hot spot,47,0,62.0,0.0549645390070922,0.5429143765630396,0.5871887569612648,sporadic hot spot
+utb,bodily_harm,Jd. Santa Rosa,no pattern detected,0,0,379.0,0.33599290780141844,3.3721784863397417,0.0007457610169403495,no pattern detected
+utb,bodily_harm,Chácaras Gargantilha,no pattern detected,0,0,-182.0,-0.16134751773049646,-1.7426955629791219,0.08138680712092716,no pattern detected
+utb,bodily_harm,Serra D?água/Coudelaria do Exército,no pattern detected,0,0,58.0,0.051418439716312055,0.5093754455346822,0.6104890841731139,no pattern detected
+utb,bodily_harm,Ville Sainte Helene/ Arboreto dos Jequitibás,no pattern detected,0,13,201.0,0.17819148936170212,1.7940527056472557,0.07280475677588871,no pattern detected
+utb,bodily_harm,Recanto dos Dourados,no pattern detected,0,0,-210.0,-0.18617021276595744,-1.9295139376165595,0.05366709149569804,no pattern detected
+utb,bodily_harm,Bosque das Palmeiras,no pattern detected,0,0,-156.0,-0.13829787234042554,-1.4145963353329334,0.15718688389935398,no pattern detected
+utb,bodily_harm,Pq. das Universidades/ Santa Cândida,no pattern detected,0,0,121.0,0.10726950354609929,1.0699653071850357,0.2846349249271021,no pattern detected
+utb,bodily_harm,CIATEC II,no pattern detected,0,0,153.0,0.1356382978723404,1.3635897828145882,0.17269670955071748,no pattern detected
+utb,bodily_harm,Cambuí,intensifying hot spot,48,0,258.0,0.22872340425531915,2.288025228265269,0.022136051985486738,intensifying hot spot
+utb,bodily_harm,Complexo Delta/Jd. Monte Alto,sporadic hot spot,17,0,562.0,0.49822695035460995,4.997785223762336,5.799252389415699e-07,no pattern detected
+utb,bodily_harm,Pq. Fazendinha/Pq. Santa Bárbara,no pattern detected,4,0,324.0,0.2872340425531915,2.877817251630987,0.0040043704003487335,no pattern detected
+utb,bodily_harm,UTR - Campo Grande 4,no pattern detected,2,0,82.0,0.0726950354609929,0.7238878578875889,0.4691345849308499,no pattern detected
+utb,bodily_harm,UTR - Campo Grande 5,no pattern detected,2,0,82.0,0.0726950354609929,0.7238878578875889,0.4691345849308499,no pattern detected
+utb,bodily_harm,UTR - Campo Grande 1,no pattern detected,13,0,349.0,0.30939716312056736,3.1036397138596783,0.0019115595615961656,no pattern detected
+utb,bodily_harm,UTR - Descampado 4,no pattern detected,0,0,482.0,0.42730496453900707,4.318230806270395,1.572849046871383e-05,no pattern detected
+utb,bodily_harm,UTR - Furnas / Tanquinho 3,no pattern detected,0,11,31.0,0.0274822695035461,0.27058523227590864,0.7867100551896362,no pattern detected
+utb,bodily_harm,UTR - Descampado 2,no pattern detected,0,0,488.0,0.4326241134751773,4.371274483015828,1.2352339049837013e-05,no pattern detected
+utb,bodily_harm,Fazenda Chapadão,no pattern detected,2,0,86.0,0.07624113475177305,0.7573604108992359,0.44883396739195236,no pattern detected
+utb,bodily_harm,Ouro Verde/Vista Alegre/Vida Nova,intensifying hot spot,44,0,495.0,0.43882978723404253,4.393179827698537,1.1170465318510736e-05,sporadic hot spot
+utb,bodily_harm,Centro-Sousas /Jd. Botânico,no pattern detected,0,1,69.0,0.061170212765957445,0.6148623910715427,0.5386456017266381,no pattern detected
+utb,bodily_harm,Vale das Garças/ Village Campinas,no pattern detected,0,0,-36.0,-0.031914893617021274,-0.37048620539197863,0.7110202529934062,no pattern detected
+utb,bodily_harm,UNICAMP/ Cidade Universitária,no pattern detected,0,0,324.0,0.2872340425531915,2.886153558885161,0.0038998183030605205,no pattern detected
+utb,bodily_harm,Alto da Nova Campinas/Gramado,no pattern detected,0,0,314.0,0.2783687943262411,2.8191715985184223,0.004814777084635846,no pattern detected
+utb,bodily_harm,Ponte Preta/Jd. Leonor,intensifying hot spot,47,0,507.0,0.449468085106383,4.50167721516309,6.741931754428165e-06,intensifying hot spot
+utb,bodily_harm,Caminhos de San Conrado,no pattern detected,0,1,209.0,0.18528368794326242,1.8728101656328573,0.0610946037178588,no pattern detected
+utb,bodily_harm,Real Parque,no pattern detected,0,0,186.0,0.16489361702127658,1.6697186133111372,0.09497504930923961,no pattern detected
+utb,bodily_harm,Jd. Nova América/ Jd. Sigrist,no pattern detected,0,0,269.0,0.23847517730496454,2.3981842858040396,0.016476573388823912,no pattern detected
+utb,bodily_harm,Guará,no pattern detected,0,0,208.0,0.18439716312056736,1.867772653508244,0.061793766730484645,no pattern detected
+utb,bodily_harm,Pq. São Quirino,no pattern detected,0,0,22.0,0.01950354609929078,0.18734573427859252,0.851389566954257,no pattern detected
+utb,bodily_harm,Vila Industrial/ Vila Teixeira/ Jd. Aurélia,intensifying hot spot,47,0,576.0,0.5106382978723404,5.113856073463256,3.156478967092369e-07,intensifying hot spot
+utb,bodily_harm,Parque Via Norte/V. Boa Vista,sporadic hot spot,24,0,477.0,0.4228723404255319,4.234667634218673,2.2888998673531447e-05,sporadic hot spot
+utb,bodily_harm,Jd. São Cristovão/ Jd. Planalto de Viracopos,no pattern detected,4,0,441.0,0.39095744680851063,3.926224658228857,8.628956584000314e-05,no pattern detected
+utb,bodily_harm,N. Europa/Pq. Prado/ Pq. Jambeiro,sporadic hot spot,28,0,465.0,0.4122340425531915,4.132274274629733,3.591914452738543e-05,no pattern detected
+utb,bodily_harm,Iguatemi / FEAC,no pattern detected,0,0,39.0,0.034574468085106384,0.3391460543765584,0.7344997057386915,no pattern detected
+utb,bodily_harm,Centro-Barão Geraldo,no pattern detected,0,0,320.0,0.28368794326241137,2.8523861620288775,0.00433923514463852,no pattern detected
+utb,bodily_harm,Jd. dos Oliveiras/Jd. Amazonas,no pattern detected,2,0,242.0,0.21453900709219859,2.1495591674017023,0.03159010120613637,no pattern detected
+utb,bodily_harm,Centro,intensifying hot spot,47,0,445.0,0.3945035460992908,3.9534274395492806,7.703963377325707e-05,intensifying hot spot
+utb,bodily_harm,Jd. Eulina/ Jd. Chapadão/ Bonfim,intensifying hot spot,47,0,513.0,0.45478723404255317,4.555417359740363,5.228166734205786e-06,intensifying hot spot
+utb,bodily_harm,Bosque/ Jd. Proença,intensifying hot spot,46,0,388.0,0.34397163120567376,3.4445731195485374,0.0005719619116204555,sporadic hot spot
+utb,bodily_harm,V. San Martin,no pattern detected,0,0,-75.0,-0.06648936170212766,-0.6598993838602105,0.5093183996411557,no pattern detected
+utb,bodily_harm,Jd. São Domingos,no pattern detected,0,0,540.0,0.4787234042553192,4.8125,1.4905387277774906e-06,no pattern detected
+utb,bodily_harm,Jd. Garcia/Campos Elíseos,sporadic hot spot,40,0,584.0,0.5177304964539007,5.186236172254138,2.14586653557447e-07,sporadic hot spot
+utb,bodily_harm,Pq.Industrial/ São Bernardo,sporadic hot spot,40,0,519.0,0.4601063829787234,4.607463986423727,4.076097728011874e-06,sporadic hot spot
+utb,bodily_harm,São Femando/ V.Orozimbo Maia/ Carlos Lourenço,no pattern detected,0,0,530.0,0.4698581560283688,4.720580767647428,2.351722022009284e-06,no pattern detected
+utb,bodily_harm,Vila Lunardi/Vila Réggio,no pattern detected,4,0,337.0,0.2987588652482269,2.9947126715548946,0.002747034779851276,no pattern detected
+utb,bodily_harm,São Marcos/ Amarais,no pattern detected,0,0,-81.0,-0.07180851063829788,-0.7135560727471676,0.47550172846926,no pattern detected
+utb,bodily_harm,Jd. Campo Belo,no pattern detected,0,0,522.0,0.4627659574468085,4.6520329590021605,3.286785292377914e-06,no pattern detected
+utb,bodily_harm,Nova Aparecida/Padre Anchieta,no pattern detected,1,0,-30.0,-0.026595744680851064,-0.25851672359124256,0.7960081439125317,no pattern detected
+utb,bodily_harm,Jd. Santa Lúcia/ V. União/ Jd. do Lago,intensifying hot spot,44,0,593.0,0.525709219858156,5.2670623404109875,1.3862414238730025e-07,sporadic hot spot
+utb,bodily_harm,Campo Grande/Jd. Florence,intensifying hot spot,44,0,443.0,0.39273049645390073,3.9330215419804104,8.388471686249233e-05,sporadic hot spot
+utb,bodily_harm,DICs COHAB,no pattern detected,19,0,397.0,0.3519503546099291,3.5312598555191617,0.0004135852208910773,no pattern detected

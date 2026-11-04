@@ -1,0 +1,103 @@
+{
+  "filter": "NOME_MUNICIPIO_CIRCUNSCRICAO == 'CAMPINAS'",
+  "rows_read": {
+    "2022_2024_csv": 106049,
+    "2025_xlsx_statewide": 1161132,
+    "2025_xlsx_campinas_candidates": 33298
+  },
+  "xlsx_filter_comparison": {
+    "circunscricao_campinas": 33252,
+    "registro_campinas": 33252,
+    "cd_ibge_3509502": 33252,
+    "both": 33206,
+    "circunscricao_only_kept": 46,
+    "registro_only_dropped": 46
+  },
+  "csv_rows_failing_filter": 0,
+  "rows_after_filter": {
+    "2022_2024_csv": 106049,
+    "2025_xlsx": 33252,
+    "total": 139301
+  },
+  "tokens_to_missing": {
+    "": 82603,
+    "NULL": 44893,
+    "NUL,L": 382
+  },
+  "cells_whitespace_stripped": 4840,
+  "coord_status": {
+    "fixed_decimal": 728,
+    "invalid": 32,
+    "missing": 11245,
+    "ok": 108520,
+    "redacted": 13144,
+    "zero": 5632
+  },
+  "hour_reformatted": 23930,
+  "hour_nonzero_seconds": 2611,
+  "hour_unparsed_kept": 0,
+  "inputs_sha256": {
+    "crimes_campinas_2022_2024.csv.bak": "6f98e51cb92798d439239e9fd6e56def7a4badbd2b4f9d13ccf19b041ccabc8f",
+    "SPDadosCriminais_2025.xlsx": "4ab5b40229d245a0f50b65e74ea9e9b7750bbdb3bff7b02d961d78b9c4143d8c"
+  },
+  "output": {
+    "path": "outputs/data/crimes_campinas.csv",
+    "rows": 139301,
+    "sha256": "54b4105a25cb6a86355a4eb6774f5a2f569d0aaef0ae514234e2f7da3eb6f7f5"
+  },
+  "vs_legacy": {
+    "legacy_rows": 139301,
+    "new_rows": 139301,
+    "rows_identical_after_same_rules": 139255,
+    "only_in_new": {
+      "rows": 46,
+      "by_NOME_MUNICIPIO": {
+        "HORTOLANDIA": 9,
+        "VALINHOS": 9,
+        "PAULINIA": 7,
+        "SUMARE": 7,
+        "MONTE MOR": 4,
+        "S.PAULO": 4,
+        "VINHEDO": 2,
+        "CACONDE": 1,
+        "OUTRO PAIS": 1,
+        "ITATINGA": 1,
+        "INDAIATUBA": 1
+      },
+      "by_NOME_MUNICIPIO_CIRCUNSCRICAO": {
+        "CAMPINAS": 46
+      },
+      "by_ANO_ESTATISTICA": {
+        "2025": 46
+      }
+    },
+    "only_in_legacy": {
+      "rows": 46,
+      "by_NOME_MUNICIPIO": {
+        "CAMPINAS": 46
+      },
+      "by_NOME_MUNICIPIO_CIRCUNSCRICAO": {
+        "SUMARE": 19,
+        "VALINHOS": 9,
+        "HORTOLANDIA": 7,
+        "PAULINIA": 6,
+        "INDAIATUBA": 2,
+        "VINHEDO": 1,
+        "S.PAULO": 1,
+        "JAGUARIUNA": 1
+      },
+      "by_ANO_ESTATISTICA": {
+        "2025": 46
+      }
+    },
+    "legacy_coord_status_under_same_rules": {
+      "fixed_decimal": 728,
+      "invalid": 31,
+      "missing": 11241,
+      "ok": 108530,
+      "redacted": 13144,
+      "zero": 5627
+    },
+    "note": "Both files normalised with etl.acquire rules (missing tokens, coordinates, HH:MM) before matching all 25 columns as a multiset."
+  }
+}

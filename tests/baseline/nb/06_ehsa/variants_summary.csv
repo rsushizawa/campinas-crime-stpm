@@ -1,0 +1,73 @@
+support,group,labels,hot,cold,no_pattern,agree_with_primary,hamed_rao_nan_p
+tract,all,category,294,6,2292,1.0,
+tract,all,category_fdr,170,0,2422,0.937,
+tract,all,category_a01,205,0,2387,0.941,
+tract,all,category_hamed_rao,294,6,2292,0.99,45.0
+tract,all,category_spatial,266,0,2326,0.933,
+tract,property,category,285,5,2302,1.0,
+tract,property,category_fdr,165,0,2427,0.941,
+tract,property,category_a01,199,0,2393,0.94,
+tract,property,category_hamed_rao,285,5,2302,0.991,45.0
+tract,property,category_spatial,280,0,2312,0.935,
+tract,bodily_harm,category,373,0,2219,1.0,
+tract,bodily_harm,category_fdr,155,0,2437,0.897,
+tract,bodily_harm,category_a01,221,0,2371,0.919,
+tract,bodily_harm,category_hamed_rao,373,0,2219,1.0,38.0
+tract,bodily_harm,category_spatial,174,0,2418,0.899,
+tract,traffic,category,431,0,2161,1.0,
+tract,traffic,category_fdr,268,0,2324,0.919,
+tract,traffic,category_a01,302,0,2290,0.931,
+tract,traffic,category_hamed_rao,431,0,2161,1.0,55.0
+tract,traffic,category_spatial,339,0,2253,0.884,
+tract,drug,category,197,0,2395,1.0,
+tract,drug,category_fdr,106,0,2486,0.948,
+tract,drug,category_a01,141,0,2451,0.967,
+tract,drug,category_hamed_rao,197,0,2395,1.0,14.0
+tract,drug,category_spatial,119,0,2473,0.949,
+tract,violent,category,284,0,2308,1.0,
+tract,violent,category_fdr,69,0,2523,0.912,
+tract,violent,category_a01,99,0,2493,0.924,
+tract,violent,category_hamed_rao,284,0,2308,1.0,11.0
+tract,violent,category_spatial,242,0,2350,0.927,
+utb,all,category,13,1,79,1.0,
+utb,all,category_fdr,9,0,84,0.946,
+utb,all,category_a01,10,0,83,0.935,
+utb,all,category_hamed_rao,13,1,79,0.978,1.0
+utb,all,category_spatial,12,1,80,0.892,
+utb,property,category,10,1,82,1.0,
+utb,property,category_fdr,8,0,85,0.968,
+utb,property,category_a01,8,0,85,0.935,
+utb,property,category_hamed_rao,10,1,82,0.946,1.0
+utb,property,category_spatial,11,0,82,0.882,
+utb,bodily_harm,category,21,4,68,1.0,
+utb,bodily_harm,category_fdr,20,1,72,0.871,
+utb,bodily_harm,category_a01,20,1,72,0.882,
+utb,bodily_harm,category_hamed_rao,21,4,68,0.978,6.0
+utb,bodily_harm,category_spatial,15,1,77,0.774,
+utb,traffic,category,22,10,61,1.0,
+utb,traffic,category_fdr,20,1,72,0.828,
+utb,traffic,category_a01,20,1,72,0.806,
+utb,traffic,category_hamed_rao,22,10,61,0.978,1.0
+utb,traffic,category_spatial,16,1,76,0.753,
+utb,drug,category,19,1,73,1.0,
+utb,drug,category_fdr,18,0,75,0.903,
+utb,drug,category_a01,18,0,75,0.903,
+utb,drug,category_hamed_rao,19,1,73,1.0,0.0
+utb,drug,category_spatial,15,0,78,0.849,
+utb,violent,category,17,1,75,1.0,
+utb,violent,category_fdr,11,0,82,0.892,
+utb,violent,category_a01,14,0,79,0.925,
+utb,violent,category_hamed_rao,17,1,75,1.0,1.0
+utb,violent,category_spatial,16,0,77,0.903,
+tract,all,"category (monthly, 48 bins)",257,3,2332,0.928,
+tract,property,"category (monthly, 48 bins)",250,2,2340,0.932,
+tract,bodily_harm,"category (monthly, 48 bins)",291,0,2301,0.863,
+tract,traffic,"category (monthly, 48 bins)",282,0,2310,0.858,
+tract,drug,"category (monthly, 48 bins)",189,0,2403,0.934,
+tract,violent,"category (monthly, 48 bins)",218,0,2374,0.917,
+utb,all,"category (monthly, 48 bins)",13,1,79,0.903,
+utb,property,"category (monthly, 48 bins)",11,1,81,0.935,
+utb,bodily_harm,"category (monthly, 48 bins)",20,4,69,0.935,
+utb,traffic,"category (monthly, 48 bins)",19,10,64,0.849,
+utb,drug,"category (monthly, 48 bins)",18,1,74,0.882,
+utb,violent,"category (monthly, 48 bins)",17,0,76,0.925,
