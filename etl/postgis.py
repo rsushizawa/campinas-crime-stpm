@@ -38,7 +38,8 @@ def apply_sql(eng, sql: str) -> None:
 
 
 def assign_unit(points: gpd.GeoDataFrame, polygons: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Point-in-polygon (``within``), first match kept; unmatched points get NaN."""
-    joined = gpd.sjoin(points, polygons, how="left", predicate="within")
-    joined = joined[~joined.index.duplicated(keep="first")]
+    """Point-in-polygon including boundaries; lowest polygon index resolves shared edges."""
+    joined = gpd.sjoin(points, polygons, how="left", predicate="covered_by")
+    joined = joined.sort_values("index_right", kind="stable")
+    joined = joined[~joined.index.duplicated(keep="first")].reindex(points.index)
     return joined.drop(columns=["index_right"], errors="ignore")

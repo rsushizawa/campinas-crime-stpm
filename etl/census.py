@@ -90,7 +90,7 @@ def tract_attributes(tracts: gpd.GeoDataFrame, *, census: pd.DataFrame, income: 
     lit = _by(literacy, ["alfa_15_mais_sabe", "alfa_15_mais_nao_sabe"]).apply(pd.to_numeric, errors="coerce")
     sabe = ids.map(lit["alfa_15_mais_sabe"])
     nao = ids.map(lit["alfa_15_mais_nao_sabe"])
-    nao = nao.where(~(sabe.notna() & nao.isna()), 0.0)   # blank illiterate with literate filled -> 0
+    # Suppressed counts remain missing, including when the literate count is available.
     tot = sabe + nao                                      # missing only when the literate count is missing too
     out["literate_15_plus"] = sabe.to_numpy()
     out["illiterate_15_plus"] = nao.to_numpy()

@@ -66,7 +66,7 @@ DATA_VERSION = "1.0.0"
 def _env(name: str, default: str):
     """Field default read from the environment; an empty variable counts as unset
     (``make`` exports ``PGPORT`` empty when it is not set)."""
-    return field(default_factory=lambda: os.getenv(name) or default)
+    return field(default_factory=lambda: os.getenv(name) or _dotenv().get(name) or default)
 
 
 def _dotenv(path: Path = REPO_ROOT / ".env") -> dict[str, str]:
@@ -101,15 +101,18 @@ class DBConfig:
     """
 
     host: str = _env("PGHOST", "localhost")
-    port: int = field(default_factory=lambda: int(os.getenv("PGPORT") or "5433"))
+    port: int = field(default_factory=lambda: int(os.getenv("PGPORT") or _dotenv().get("PGPORT") or "5433"))
     database: str = _env("PGDATABASE", "crime_db")
     user: str = _env("PGUSER", "admin")
     password: str = field(default_factory=_password, repr=False)
 
     @property
-    def url(self) -> str:
+    def url(self):
         """SQLAlchemy URL (``postgresql+psycopg2://...``)."""
-        return f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+        from sqlalchemy.engine import URL
+
+        return URL.create("postgresql+psycopg2", username=self.user, password=self.password,
+                          host=self.host, port=self.port, database=self.database)
 
 
 def engine(db: DBConfig | None = None):

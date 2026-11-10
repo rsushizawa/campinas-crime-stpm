@@ -21,7 +21,8 @@ from __future__ import annotations
 import datetime as dt
 import json
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from contextlib import nullcontext
 
 import geopandas as gpd
 import numpy as np
@@ -122,20 +123,25 @@ def insert(engine, table: str, df: pd.DataFrame, *, geometry: str | None = None,
             g = geoms[i]
             row.append(psycopg2.Binary(g.wkb) if g is not None and not g.is_empty else None)
         rows.append(row)
-    raw = engine.raw_connection()
+    shared = isinstance(engine, _LoadConnection)
+    raw = engine.connection.connection if shared else engine.raw_connection()
     try:
         with raw.cursor() as cur:
             execute_values(cur, f"INSERT INTO {table} ({', '.join(names)}) VALUES %s", rows,
                            template=tmpl, page_size=page_size)
-        raw.commit()
+        if not shared:
+            raw.commit()
     except (psycopg2.IntegrityError, psycopg2.DataError) as exc:
-        raw.rollback()
+        if not shared:
+            raw.rollback()
         raise StageFailed(f"rule 24, {table}: {exc.pgerror or exc}") from exc
     except Exception:
-        raw.rollback()
+        if not shared:
+            raw.rollback()
         raise
     finally:
-        raw.close()
+        if not shared:
+            raw.close()
     return len(rows)
 
 
@@ -314,6 +320,29 @@ class WriteBuild:
             extra={"funnel": f})
 
 
+class _LoadConnection:
+    """Share the transaction through the existing stage query interface."""
+
+    def __init__(self, connection):
+        self.connection = connection
+
+    def begin(self):
+        return nullcontext(self.connection)
+
+    def connect(self):
+        return nullcontext(self.connection)
+
+
+class _AtomicLoad(Pipeline):
+    def run(self, data):
+        with data.engine.begin() as connection:
+            # Serialize concurrent rebuilds until this transaction completes.
+            from sqlalchemy import text
+            connection.execute(text("SELECT pg_advisory_xact_lock(3509502)"))
+            result = super().run(replace(data, engine=_LoadConnection(connection)))
+        return replace(result, kept=replace(result.kept, engine=data.engine))
+
+
 def load_pipeline() -> Pipeline:
     """Schema, writes (rule 24), checks (rules 23, 25), then the build row."""
-    return Pipeline(STAGE, [ApplySchema(), WriteTables(), CheckRowCounts(), CheckSRID(), WriteBuild()])
+    return _AtomicLoad(STAGE, [ApplySchema(), WriteTables(), CheckRowCounts(), CheckSRID(), WriteBuild()])
