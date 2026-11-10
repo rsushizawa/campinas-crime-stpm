@@ -170,9 +170,9 @@ class CensusAttributes:
 class AssignTract:
     """Rules 16 and 17 (fix, exclude): the 2022 tract each geocoded bulletin lies in.
 
-    Point-in-polygon with :func:`geopandas.sjoin` (``predicate="within"``) on
+    Point-in-polygon with :func:`geopandas.sjoin` (``predicate="covered_by"``) on
     the WGS84 tract polygons, as published; a point on a shared edge takes the
-    first match (rule 16). A bulletin outside every tract keeps a missing
+    lowest polygon index (rule 16). A bulletin outside every tract keeps a missing
     ``census_tract_id`` (rule 17): it stays in the monthly series and leaves the
     spatial event set. Bulletins without a usable coordinate also have no tract.
     """
