@@ -1,7 +1,0 @@
-support,weights,n_units,n_islands,islands,n_components_after_drop,mean_neighbours,median_neighbours,min_neighbours,max_neighbours
-tract,queen,2592,0,,1,6.030864197530864,5.0,1,38
-tract,rook,2592,0,,1,5.515432098765432,5.0,1,36
-tract,knn5,2592,0,,2,5.0,5.0,5,5
-utb,queen,93,0,,1,5.505376344086022,5.0,1,12
-utb,rook,93,2,UTR - Campo Grande 3; UTR - Campo Grande 4,1,4.549450549450549,4.0,1,11
-utb,knn5,93,0,,1,5.0,5.0,5,5

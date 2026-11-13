@@ -1,3 +1,0 @@
-scale,n,min_p,n_at_floor,floor_units_needed_for_bh,HH_raw,HH_fdr,LL_raw,LL_fdr,HL_raw,HL_fdr,LH_raw,LH_fdr,LL_raw_allzero,LL_fdr_allzero
-count,2592,0.002,64,104,223,0,187,0,16,0,106,0,2,0
-per_km2,2592,0.002,150,104,155,33,441,169,32,7,32,2,3,3

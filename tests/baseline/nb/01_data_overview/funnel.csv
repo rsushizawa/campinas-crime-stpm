@@ -1,6 +1,0 @@
-stage,all,property,definition,recomputed,dropped_from_previous,share_of_raw_%
-offence records (acquired CSV),139301,109708,outputs/data/crimes_campinas.csv; property = record's own offence is property,139301,0,100.0
-bulletins (one row per NUM_BO+ANO_BO+NOME_DELEGACIA),138330,109632,kept offence = highest maximum penalty (etl/clean.py),138330,971,99.3
-occurrence date in window,137323,108914,"DATA_OCORRENCIA_BO in [2022-01-01, 2025-12-31]",137323,1007,98.6
-... with a usable coordinate,107912,90463,"COORD_STATUS in {ok, fixed_decimal}",107912,29411,77.5
-... inside a 2022 Campinas tract (cube input),107859,90436,point within a tract polygon,107859,53,77.4
