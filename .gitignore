@@ -12,14 +12,13 @@ dist/
 .pytest_cache/
 .ruff_cache/
 
-# Generated outputs (Alexander 2023 layout) — rebuilt by the Makefile stages.
+# Generated outputs (Alexander 2023 layout) — rebuilt by the treatment stages.
 /outputs/*
 
 *.bak
-# The 2022-2024 SSP-SP raw extract is the only surviving copy (Git LFS, see .gitattributes).
-!/inputs/data/crimes_campinas_2022_2024.csv.bak
 
-# IBGE census tables kept untracked by design (size; see inputs/data/README.md and docs/data/)
-/inputs/data/geobr/Agregados_por_setores_basico_BR_20260520.zip
-/inputs/data/geobr/Agregados_por_setores_renda_responsavel_BR_20260508_csv.zip
-/inputs/data/geobr/dicionario_de_dados_renda_responsavel_20260508.xlsx
+# Study datasets are distributed separately.
+/inputs/
+.crime-data-release.json
+.releases/
+.download/
