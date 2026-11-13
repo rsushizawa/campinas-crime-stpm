@@ -39,10 +39,8 @@ Git clone. In their setup form, supply `PACKAGE_SOURCE` (the uploaded wheel path
 or use an already installed package. Choose `PROJECT_ROOT` for outputs and
 `STUDY_DATA_DIRECTORY` for external raw data. Run cells in order.
 
-Colab forms also expose the Google project ID (`campinas-crime-stpm` by default),
-authentication and query byte limits. Live Base dos Dados access requires your
-Google login. Municipal reference counts support temporal analysis and aggregate
-reconciliation; tract-level hotspots require geocoded report data.
+Colab forms expose the data profile, release mode, automatic update toggle, and
+PostGIS settings. Tract-level hotspots require geocoded report data.
 
 ## Data and workspace
 
@@ -116,5 +114,5 @@ and raw/adjusted significance histories, loading Leaflet and Plotly from CDNs.
 Source snapshots, checksums, analysis parameters and output manifests record each
 run. The repository contains no raw study files, historical outputs, legacy ETL
 scripts or test folder. Python 3.12 wheel installation has been checked in an
-isolated local environment; a fresh Colab runtime and live BigQuery queries still
-require verification in an authenticated user session.
+isolated local environment; a fresh Colab runtime can use the public snapshot or
+the configured SSP source URLs.
