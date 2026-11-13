@@ -46,18 +46,42 @@ reconciliation; tract-level hotspots require geocoded report data.
 
 ## Data and workspace
 
-Raw study data are distributed separately. The package contains the eight-file
-checksum manifest `crime/downloader/campinas-2022-2025.sha256` and verifies it
-before running the pinned treatments. The default external data location is
+Raw study data are distributed as a separate, versioned release. The package
+contains the eight-file checksum manifest
+`crime/downloader/campinas-2022-2025.sha256` and verifies it before running the
+pinned treatments. The default external data location is
 `~/.local/share/campinas-crime-stpm/campinas-2022-2025`, respecting `XDG_DATA_HOME`.
 Set `CRIME_DATA_DIR` before import to override it. Files retain the relative paths
 in the manifest. Source notes and datasheets accompany the local data release.
-A public data-release URL has not been published yet.
-
-The notebook can download a release from `INPUT_RELEASE_URL` when that server
-exposes the manifest's relative paths. It can also read a mounted/uploaded release.
+The reserved release URL is the `data-v1.0.0` GitHub Release. Once that release
+is published, set
+`CRIME_DATA_RELEASE_URL` or the notebook's `DATA_RELEASE_URL` to select another
+release. A release may expose the manifest's relative paths directly and may
+publish a `release.json` file with its version and checksums. The downloader
+supports `local`, `download`, and `auto` modes; updates are disabled by default,
+and replaced files are retained under `.releases/`.
+The notebooks additionally expose `DATA_PROFILE=live` and `DATA_PROFILE=hybrid`.
+Live mode uses official IBGE/GeoBR endpoints where available and accepts a JSON
+map of explicit URLs for the SSP extracts, the legacy comparison CSV, and the
+curated literacy CSV. Hybrid mode keeps the snapshot and refreshes only the
+live sources supplied in that map. Every live run writes `.crime-live-data.json`
+with URLs, retrieval time and hashes.
 `CRIME_PROJECT_ROOT` selects the workspace (default: current working directory);
 results are written beneath its `outputs/` folder. Outputs are not package files.
+
+The notebooks also have a VoxCity-style quick-start cell:
+
+```python
+from crime import CrimeStudy
+
+study = CrimeStudy(data_profile="snapshot", data_mode="auto")
+result = study.build()
+result.explore()
+```
+
+The package provisions the selected data release and caches it in the configured
+data directory. A published snapshot release or a configured live source is
+required; no file upload is part of this workflow.
 
 ## PostGIS
 

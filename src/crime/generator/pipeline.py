@@ -1,6 +1,6 @@
 """Pipes-and-filters framework for the ETL treatments.
 
-Every data treatment in ``etl/steps/`` is one :class:`Step`. A step receives
+Every data treatment in the importer and generator stages is one :class:`Step`. A step receives
 the table it works on and returns a :class:`StepResult` with three parts:
 
 * ``kept``: the rows that continue down the pipeline (possibly modified),

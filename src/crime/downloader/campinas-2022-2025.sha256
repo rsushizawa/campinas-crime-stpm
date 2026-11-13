@@ -1,4 +1,4 @@
-# SHA-256 of every raw input the ETL reads (verified by rule 1, etl/steps/acquire.py).
+# SHA-256 of every raw input the study treatment reads and verifies.
 # Same values as the datasheets in docs/data/. Regenerate only when an input is replaced on purpose.
 6f98e51cb92798d439239e9fd6e56def7a4badbd2b4f9d13ccf19b041ccabc8f  crimes_campinas_2022_2024.csv.bak
 4ab5b40229d245a0f50b65e74ea9e9b7750bbdb3bff7b02d961d78b9c4143d8c  SPDadosCriminais_2025.xlsx
